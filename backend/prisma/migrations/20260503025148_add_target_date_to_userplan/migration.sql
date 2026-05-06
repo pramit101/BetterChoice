@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "Profile" ADD COLUMN     "Gain" DOUBLE PRECISION,
+ADD COLUMN     "Lose" DOUBLE PRECISION,
+ADD COLUMN     "targetData" TIMESTAMP(3);

@@ -1,0 +1,84 @@
+generator client {
+  provider      = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id          String      @id @default(uuid())
+  firebaseUid String      @unique
+  email       String      @unique
+  name        String?
+  onboarded   Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+  healthPlan  HealthPlan?
+  meals       Meal[]
+  profile     Profile?
+}
+
+model Profile {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  age           Int
+  weight        Float?
+  goal          String
+  activityLevel String
+  updatedAt     DateTime @updatedAt
+  gender        String?
+  height        Float?
+  targetData    DateTime?
+  Lose          Float?
+  Gain          Float?
+  user          User     @relation(fields: [userId], references: [id])
+}
+
+model HealthPlan {
+  id             String   @id @default(uuid())
+  userId         String   @unique
+  targetCalories Int
+  targetProtein  Int
+  aiPlanDetails  Json
+  generatedAt    DateTime @default(now())
+  targetCarb     Int?
+  targetFat      Int?
+  user           User     @relation(fields: [userId], references: [id])
+}
+
+model FoodItem {
+  id        String     @id @default(uuid())
+  name      String
+  calories  Int
+  protein   Int
+  fat       Int?
+  carbs     Int?
+  barcode   String?    @unique
+  isCustom  Boolean    @default(false)
+  mealItems MealItem[]
+
+  @@unique([name, calories]) 
+}
+
+model Meal {
+  id        String     @id @default(uuid())
+  userId    String
+  name      String
+  date      DateTime @default(now())
+  imageUri  String?
+  createdAt DateTime   @default(now())
+  user      User       @relation(fields: [userId], references: [id])
+  items     MealItem[]
+
+  @@unique([userId, name, date]) 
+}
+
+model MealItem {
+  id         String   @id @default(uuid())
+  mealId     String
+  foodItemId String
+  quantity   Float
+  unit       String
+  foodItem   FoodItem @relation(fields: [foodItemId], references: [id])
+  meal       Meal     @relation(fields: [mealId], references: [id])
+}

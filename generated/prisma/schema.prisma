@@ -1,0 +1,90 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider      = "prisma-client-js"
+  engineType    = "library"
+  binaryTargets = ["native"]
+  output        = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id          String   @id @default(uuid())
+  firebaseUid String   @unique // This links to Firebase u.uid
+  email       String   @unique
+  name        String?
+  onboarded   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  profile    Profile?
+  healthPlan HealthPlan?
+  meals      Meal[]
+}
+
+model Profile {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id])
+
+  age           Int
+  weight        Float?
+  goal          String // e.g., "build", "lose"
+  gender        String?
+  height        Float?
+  activityLevel String // e.g., "very_active"
+  updatedAt     DateTime @updatedAt
+}
+
+model HealthPlan {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id])
+
+  targetCalories Int
+  targetProtein  Int
+  aiPlanDetails  Json // Stores the full response from Gemini
+  generatedAt    DateTime @default(now())
+}
+
+model FoodItem {
+  id       String  @id @default(uuid())
+  name     String
+  calories Int
+  protein  Int
+  fat      Int?
+  carbs    Int?
+  barcode  String? @unique // For the barcode scanner feature
+  isCustom Boolean @default(false) // True if created by AI photo scan
+
+  mealItems MealItem[]
+}
+
+model Meal {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  name      String // e.g., "Breakfast", "Post-Workout Snack"
+  imageUri  String? // URL to the photo uploaded for AI scanning
+  createdAt DateTime @default(now())
+
+  items MealItem[]
+}
+
+model MealItem {
+  id     String @id @default(uuid())
+  mealId String
+  meal   Meal   @relation(fields: [mealId], references: [id])
+
+  foodItemId String
+  foodItem   FoodItem @relation(fields: [foodItemId], references: [id])
+
+  quantity Float // e.g., 1.5 (servings) or 200 (grams)
+  unit     String // e.g., "grams", "serving", "oz"
+}
