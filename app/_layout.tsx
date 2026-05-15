@@ -1,6 +1,7 @@
 import { AuthProvider, useAuth } from "@/services/AuthContext";
-import { ThemeProvider } from "@/services/ThemeContext";
+import { ThemeProvider, useTheme } from "@/services/ThemeContext";
 import { Stack, useRouter, useSegments } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
@@ -21,6 +22,7 @@ function RootLayoutNav() {
     clearServerError,
   } = useAuth();
   const segments = useSegments();
+  const { dark } = useTheme();
   const router = useRouter();
   const [retrying, setRetrying] = useState(false);
   const handleRetry = async () => {
@@ -34,6 +36,12 @@ function RootLayoutNav() {
       setRetrying(false);
     }
   };
+
+  useEffect(() => {
+    if (!isLoading) {
+      SplashScreen.hideAsync();
+    }
+  }, [isLoading]);
 
   useEffect(() => {
     if (isLoading) return;
@@ -58,6 +66,7 @@ function RootLayoutNav() {
       router.replace("/(tabs)");
     }
   }, [user, isLoading, segments, profile]);
+  if (isLoading) return null;
   if (serverError) {
     return (
       <View
@@ -111,22 +120,24 @@ function RootLayoutNav() {
   }
 
   return (
-    <ThemeProvider>
+    <>
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="auth" options={{ headerShown: false }} />
         <Stack.Screen name="onboarding" options={{ headerShown: false }} />
         <Stack.Screen name="Screens" options={{ headerShown: false }} />
       </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+      <StatusBar style={dark ? "light" : "dark"} />
+    </>
   );
 }
-
+SplashScreen.preventAutoHideAsync();
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <RootLayoutNav />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <RootLayoutNav />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

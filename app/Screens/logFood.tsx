@@ -34,7 +34,6 @@ import {
   Dimensions,
   FlatList,
   Image,
-  KeyboardAvoidingView,
   Modal,
   Platform,
   ScrollView,
@@ -82,6 +81,7 @@ type FoodItem = {
 
 type RecentItem = {
   id: string;
+  MealId: string;
   name: string;
   calories: number;
   protein: number;
@@ -155,21 +155,28 @@ function FoodRow({ item, onPress }: { item: FoodItem; onPress: () => void }) {
 // ─── Add Food Detail Sheet ────────────────────────────────────────────────────
 function FoodDetailSheet({
   item,
-  mealType,
   visible,
+  isRecent,
   onClose,
   onAdd,
 }: {
   item: FoodItem | null;
-  mealType: MealType;
   visible: boolean;
+  isRecent: boolean;
   onClose: () => void;
-  onAdd: (item: FoodItem, grams: number) => void;
+  onAdd: (
+    item: FoodItem,
+    grams: number,
+    isRecent: boolean,
+    mealType: string,
+  ) => void;
 }) {
   const [grams, setGrams] = useState("100");
+  const [mealType, setMealType] = useState<MealType>("Lunch");
   const { dark } = useTheme();
   if (!item) return null;
 
+  const hasImage = item.source === "ai" && !!item.imageUri;
   const scale = Number(grams) / 100;
   const scaled = {
     calories: Math.round(item.calories * scale),
@@ -185,24 +192,18 @@ function FoodDetailSheet({
       animationType="slide"
       onRequestClose={onClose}
     >
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-      >
-        <TouchableOpacity
-          style={styles.sheetOverlay}
-          activeOpacity={1}
-          onPress={onClose}
-        />
-        <View style={dark ? styles.sheetDark : styles.sheet}>
-          <View style={dark ? styles.sheetHandleDark : styles.sheetHandle} />
-          {item.source === "ai" && item.imageUri && (
-            <Image
-              source={{ uri: item.imageUri }}
-              style={styles.detailImage}
-              resizeMode="contain"
-            />
-          )}
+      <TouchableOpacity
+        style={styles.sheetOverlay}
+        activeOpacity={1}
+        onPress={onClose}
+      />
+      <View style={[styles.sheet, dark && styles.sheetDark]}>
+        <View style={dark ? styles.sheetHandleDark : styles.sheetHandle} />
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+        >
           {/* Source badge */}
           <View style={[styles.sourceBadge, dark && styles.sourceBadgeDark]}>
             <Text
@@ -212,10 +213,10 @@ function FoodDetailSheet({
               ]}
             >
               {item.source === "ai"
-                ? "🤖 AI Estimate"
+                ? "AI Estimate"
                 : item.source === "off"
-                  ? "📦 Open Food Facts"
-                  : "🥗 USDA"}
+                  ? "Open Food Facts"
+                  : "USDA"}
             </Text>
           </View>
 
@@ -283,7 +284,13 @@ function FoodDetailSheet({
               </TouchableOpacity>
             ))}
           </View>
-
+          {item.source === "ai" && item.imageUri && (
+            <Image
+              source={{ uri: item.imageUri }}
+              style={styles.detailImage}
+              resizeMode="contain"
+            />
+          )}
           {/* Macro breakdown */}
           <View
             style={[styles.macroBreakdown, dark && styles.macroBreakdownDark]}
@@ -358,10 +365,53 @@ function FoodDetailSheet({
               </Text>
             </View>
           </View>
-
+          <View
+            style={
+              hasImage
+                ? styles.mealTypeSelectorRow
+                : styles.mealTypeSelectorColumn
+            }
+          >
+            {MEAL_TYPES.map((type, i) => {
+              const Icon = MEAL_ICONS[type];
+              return (
+                <MotiView
+                  key={type}
+                  from={{ opacity: 0, scale: 0.85 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ type: "spring", delay: 60 + i * 50 }}
+                >
+                  <TouchableOpacity
+                    onPress={() => setMealType(type)}
+                    activeOpacity={0.7}
+                    style={[
+                      styles.mealTypeBtn,
+                      dark && styles.mealTypeBtnDark,
+                      mealType === type && styles.mealTypeBtnActive,
+                      mealType === type && dark && styles.mealTypeBtnActiveDark,
+                    ]}
+                  >
+                    {<Icon size={16} color={dark ? "white" : "black"} />}
+                    <Text
+                      style={[
+                        styles.mealTypeText,
+                        dark && styles.mealTypeTextDark,
+                        mealType === type && styles.mealTypeTextActive,
+                        mealType === type &&
+                          dark &&
+                          styles.mealTypeTextActiveDark,
+                      ]}
+                    >
+                      {type}
+                    </Text>
+                  </TouchableOpacity>
+                </MotiView>
+              );
+            })}
+          </View>
           {/* Add button */}
           <TouchableOpacity
-            onPress={() => onAdd(item, Number(grams))}
+            onPress={() => onAdd(item, Number(grams), isRecent, mealType)}
             activeOpacity={0.85}
             style={styles.addBtnWrap}
           >
@@ -374,8 +424,8 @@ function FoodDetailSheet({
               <Text style={styles.addBtnText}>Add to {mealType}</Text>
             </LinearGradient>
           </TouchableOpacity>
-        </View>
-      </KeyboardAvoidingView>
+        </ScrollView>
+      </View>
     </Modal>
   );
 }
@@ -615,11 +665,11 @@ function AIPhotoModal({
                 colors={["#1a6644", "#0d3d2b"]}
                 style={styles.aiPhotoBtnGrad}
               >
-                <ScanSearch size={50} color={dark ? "white" : "black"} />
+                <ScanSearch size={50} color={"white"} />
                 <Text style={styles.aiPhotoBtnText}>Take Photo</Text>
                 <Text style={styles.aiPhotoBtnSub}>
                   {/* TODO: expo-image-picker */}
-                  (requires expo-image-picker)
+                  (requires camera permission)
                 </Text>
               </LinearGradient>
             </TouchableOpacity>
@@ -723,7 +773,6 @@ function AIPhotoModal({
 export default function LogFoodScreen() {
   const { dark } = useTheme();
   const { user } = useAuth();
-  const [mealType, setMealType] = useState<MealType>("Lunch");
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<FoodItem[]>([]);
   const [searching, setSearching] = useState(false);
@@ -734,8 +783,9 @@ export default function LogFoodScreen() {
   const [meals, setMeals] = useState<RecentItem[]>([]);
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [aiImageUrl, setAiImageUrl] = useState<string | null>(null);
+  const [isRecent, setIsRecent] = useState(false);
 
-  const fetchTodaysMeals = async () => {
+  const fetchRecentMeals = async () => {
     try {
       const res = await fetch(
         `http://${IP}:3000/api/meals/recent/${user?.uid}`,
@@ -749,11 +799,12 @@ export default function LogFoodScreen() {
   };
 
   useEffect(() => {
-    fetchTodaysMeals();
+    fetchRecentMeals();
   }, []);
   // ── Search ──────────────────────────────────────────────────────────────────
   const handleSearch = (text: string) => {
     setQuery(text);
+    setIsRecent(false);
     if (searchTimeout.current) clearTimeout(searchTimeout.current);
     if (!text.trim()) {
       setResults([]);
@@ -776,24 +827,44 @@ export default function LogFoodScreen() {
     }, 400);
   };
 
-  const handleAddFood = async (item: FoodItem, grams: number) => {
-    await fetch(`http://${IP}:3000/api/meals/log`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        firebaseUid: user?.uid,
-        mealType,
-        foodName: item.name,
-        quantity: grams,
-        unit: "g",
-        calories: Math.round((item.calories * grams) / 100),
-        protein: Math.round(((item.protein * grams) / 100) * 10) / 10,
-        carbs: Math.round(((item.carbs * grams) / 100) * 10) / 10,
-        fat: Math.round(((item.fat * grams) / 100) * 10) / 10,
-        imageUrl: item.source === "ai" ? aiImageUrl : null,
-      }),
-    });
-    console.log("Adding:", item.name, grams + "g", "to", mealType);
+  const handleAddFood = async (
+    item: FoodItem,
+    grams: number,
+    isRecent: boolean,
+    mealType: string,
+  ) => {
+    if (isRecent) {
+      await fetch(`http://${IP}:3000/api/meals/recent/log`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          firebaseUid: user?.uid,
+          FoodId: item.id,
+          mealType,
+          quantity: grams,
+          unit: "g",
+          imageUrl: item.imageUri,
+        }),
+      });
+    } else {
+      await fetch(`http://${IP}:3000/api/meals/log`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          firebaseUid: user?.uid,
+          mealType,
+          foodName: item.name,
+          quantity: grams,
+          unit: "g",
+          calories: Math.round((item.calories * grams) / 100),
+          protein: Math.round(((item.protein * grams) / 100) * 10) / 10,
+          carbs: Math.round(((item.carbs * grams) / 100) * 10) / 10,
+          fat: Math.round(((item.fat * grams) / 100) * 10) / 10,
+          imageUrl: item.source === "ai" ? aiImageUrl : null,
+        }),
+      });
+      console.log("Adding:", item.name, grams + "g", "to", mealType);
+    }
     setAiImageUrl(null);
     setShowDetail(false);
     setSelectedItem(null);
@@ -809,227 +880,135 @@ export default function LogFoodScreen() {
       style={[styles.root, dark && styles.rootDark]}
       edges={["top"]}
     >
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
-        {/* Header */}
-        <MotiView
-          from={{ opacity: 0, translateY: -10 }}
-          animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: "timing", duration: 400 }}
-          style={styles.header}
-        >
-          <Text style={[styles.headerTitle, dark && styles.headerTitleDark]}>
-            Log Food
-          </Text>
-          <Text style={[styles.headerSub, dark && styles.headerSubDark]}>
-            {new Date().toLocaleDateString("en-AU", {
-              weekday: "long",
-              day: "numeric",
-              month: "short",
-            })}
-          </Text>
-        </MotiView>
-
-        {/* Meal type selector */}
-        <MotiView
-          from={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ type: "timing", duration: 400, delay: 60 }}
-        >
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.mealTypeRow}
+      <FlatList
+        data={query.length > 0 ? results : meals}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.listContent}
+        keyboardShouldPersistTaps="handled"
+        stickyHeaderIndices={[0]}
+        ListHeaderComponent={
+          <View
+            style={{
+              backgroundColor: dark ? "#0a2318" : C.bg,
+              paddingBottom: 10,
+            }}
           >
-            {MEAL_TYPES.map((type, i) => {
-              const Icon = MEAL_ICONS[type];
-              return (
-                <MotiView
-                  key={type}
-                  from={{ opacity: 0, scale: 0.85 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ type: "spring", delay: 60 + i * 50 }}
-                >
-                  <TouchableOpacity
-                    onPress={() => setMealType(type)}
-                    activeOpacity={0.7}
-                    style={[
-                      styles.mealTypeBtn,
-                      dark && styles.mealTypeBtnDark,
-                      mealType === type && styles.mealTypeBtnActive,
-                      mealType === type && dark && styles.mealTypeBtnActiveDark,
-                    ]}
-                  >
-                    {<Icon color={dark ? "white" : "black"} />}
-                    <Text
-                      style={[
-                        styles.mealTypeText,
-                        dark && styles.mealTypeTextDark,
-                        mealType === type && styles.mealTypeTextActive,
-                        mealType === type &&
-                          dark &&
-                          styles.mealTypeTextActiveDark,
-                      ]}
-                    >
-                      {type}
-                    </Text>
-                  </TouchableOpacity>
-                </MotiView>
-              );
-            })}
-          </ScrollView>
-        </MotiView>
-
-        {/* Search bar + action buttons */}
-        <MotiView
-          from={{ opacity: 0, translateY: 8 }}
-          animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: "timing", duration: 400, delay: 120 }}
-          style={styles.searchSection}
-        >
-          {/* Search input */}
-          <View style={[styles.searchBar, dark && styles.searchBarDark]}>
-            <Search color={dark ? "white" : "black"} />
-            <TextInput
-              style={[styles.searchInput, dark && styles.searchInputDark]}
-              placeholder="Search food... e.g. eggs, rice, chicken"
-              placeholderTextColor={dark ? "#aaaaaa" : C.textLight}
-              value={query}
-              onChangeText={handleSearch}
-              returnKeyType="search"
-              autoCorrect={false}
-            />
-            {searching && <ActivityIndicator color={C.primary} size="small" />}
-            {query.length > 0 && !searching && (
-              <TouchableOpacity
-                onPress={() => {
-                  setQuery("");
-                  setResults([]);
-                }}
-              >
-                <Text style={[styles.clearBtn, dark && styles.clearBtnDark]}>
-                  ✕
-                </Text>
-              </TouchableOpacity>
-            )}
-          </View>
-
-          {/* Barcode + AI buttons */}
-          <View style={styles.actionBtns}>
-            <TouchableOpacity
-              onPress={() => setShowBarcode(true)}
-              activeOpacity={0.8}
-              style={styles.actionBtn}
-            >
-              <LinearGradient
-                colors={["#1a6644", "#0d3d2b"]}
-                style={styles.actionBtnGrad}
-              >
-                <Text style={styles.actionBtnIcon}>
-                  <Barcode color="#ffffff" />
-                </Text>
-                <Text style={styles.actionBtnLabel}>Barcode</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => setShowAI(true)}
-              activeOpacity={0.8}
-              style={styles.actionBtn}
-            >
-              <LinearGradient
-                colors={["#2db87a", "#1a6644"]}
-                style={styles.actionBtnGrad}
-              >
-                <ScanSearch color="#ffffff" />
-                <Text style={styles.actionBtnLabel}>AI Photo</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          </View>
-        </MotiView>
-
-        {/* Results / Recent */}
-        <FlatList
-          data={query.length > 0 ? results : meals}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
-          keyboardShouldPersistTaps="handled"
-          ListHeaderComponent={
             <MotiView
-              from={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ type: "timing", duration: 300, delay: 200 }}
+              from={{ opacity: 0, translateY: -10 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              style={styles.header}
             >
-              <Text style={[styles.listHeader, dark && styles.listHeaderDark]}>
-                {query.length > 0
-                  ? results.length > 0
-                    ? `${results.length} results for "${query}"`
-                    : searching
-                      ? "Searching..."
-                      : "No results found"
-                  : "Recent items"}
+              <Text
+                style={[styles.headerTitle, dark && styles.headerTitleDark]}
+              >
+                Log Food
+              </Text>
+              <Text style={[styles.headerSub, dark && styles.headerSubDark]}>
+                {new Date().toLocaleDateString("en-AU", {
+                  weekday: "long",
+                  day: "numeric",
+                  month: "short",
+                })}
               </Text>
             </MotiView>
-          }
-          ListEmptyComponent={
-            !searching ? (
-              <View style={styles.emptySearch}>
-                <Text style={styles.emptySearchEmoji}>🔍</Text>
-                <Text
-                  style={[
-                    styles.emptySearchText,
-                    dark && styles.emptySearchTextDark,
-                  ]}
-                >
-                  {query.length === 0 && meals.length > 0
-                    ? "Today's logged items"
-                    : "Start typing to search foods"}
-                </Text>
-              </View>
-            ) : null
-          }
-          renderItem={({ item, index }) => (
-            <MotiView
-              from={{ opacity: 0, translateX: -12 }}
-              animate={{ opacity: 1, translateX: 0 }}
-              transition={{ type: "timing", duration: 300, delay: index * 40 }}
-            >
-              <FoodRow item={item} onPress={() => openDetail(item)} />
-            </MotiView>
-          )}
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
-        />
-      </KeyboardAvoidingView>
 
-      {/* Modals */}
-      <FoodDetailSheet
-        item={selectedItem}
-        mealType={mealType}
-        visible={showDetail}
-        onClose={() => {
-          setShowDetail(false);
-          setSelectedItem(null);
-        }}
-        onAdd={handleAddFood}
+            {/* Search Section */}
+            <View style={styles.searchSection}>
+              <View style={[styles.searchBar, dark && styles.searchBarDark]}>
+                <Search color={dark ? "white" : "black"} size={20} />
+                <TextInput
+                  style={[styles.searchInput, dark && styles.searchInputDark]}
+                  placeholder="Search food..."
+                  value={query}
+                  onChangeText={handleSearch}
+                  placeholderTextColor={dark ? "#aaaaaa" : C.textLight}
+                />
+                {searching && (
+                  <ActivityIndicator color={C.primary} size="small" />
+                )}
+              </View>
+
+              <View style={styles.actionBtns}>
+                <TouchableOpacity
+                  onPress={() => setShowBarcode(true)}
+                  style={styles.actionBtn}
+                >
+                  <LinearGradient
+                    colors={["#1a6644", "#0d3d2b"]}
+                    style={styles.actionBtnGrad}
+                  >
+                    <Barcode color="#ffffff" size={20} />
+                    <Text style={styles.actionBtnLabel}>Barcode</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => setShowAI(true)}
+                  style={styles.actionBtn}
+                >
+                  <LinearGradient
+                    colors={["#2db87a", "#1a6644"]}
+                    style={styles.actionBtnGrad}
+                  >
+                    <ScanSearch color="#ffffff" size={20} />
+                    <Text style={styles.actionBtnLabel}>AI Photo</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* The Result Label */}
+            <Text
+              style={[
+                styles.listHeader,
+                dark && styles.listHeaderDark,
+                { marginTop: 15, paddingHorizontal: 20 },
+              ]}
+            >
+              {query.length > 0 ? "Search Results" : "Recent items"}
+            </Text>
+          </View>
+        }
+        renderItem={({ item }) => (
+          <View style={{ paddingHorizontal: 20 }}>
+            <FoodRow
+              item={item}
+              onPress={() => {
+                setIsRecent(query.length === 0);
+                openDetail(item);
+              }}
+            />
+          </View>
+        )}
+        ListEmptyComponent={
+          !searching ? (
+            <View style={styles.emptySearch}>
+              <Text style={styles.emptySearchEmoji}>🔍</Text>
+              <Text style={dark && { color: "white" }}>No items found</Text>
+            </View>
+          ) : null
+        }
       />
 
+      {/* --- MODALS (Stay at the bottom) --- */}
+      <FoodDetailSheet
+        item={selectedItem}
+        visible={showDetail}
+        isRecent={isRecent}
+        onClose={() => setShowDetail(false)}
+        onAdd={handleAddFood}
+      />
       <BarcodeScannerModal
         visible={showBarcode}
         onClose={() => setShowBarcode(false)}
-        onFound={(item) => {
-          openDetail(item);
-          setShowBarcode(false);
-        }}
+        onFound={openDetail}
       />
-
       <AIPhotoModal
         visible={showAI}
         onClose={() => setShowAI(false)}
-        onResult={(item, imageUrl) => {
-          setAiImageUrl(imageUrl);
-          openDetail({ ...item, imageUri: imageUrl });
+        onResult={(item, url) => {
+          setAiImageUrl(url);
+          openDetail(item);
         }}
       />
     </SafeAreaView>
@@ -1041,7 +1020,11 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
   rootDark: { backgroundColor: "#081410" },
 
-  header: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 4 },
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 10,
+  },
   headerTitle: { fontSize: 26, fontWeight: "700", color: C.text },
   headerTitleDark: { color: "#e0f5ec" },
   headerSub: { fontSize: 13, color: C.textLight, marginTop: 2 },
@@ -1050,10 +1033,11 @@ const styles = StyleSheet.create({
   // Meal type
   mealTypeRow: { paddingHorizontal: 20, paddingVertical: 14, gap: 10 },
   mealTypeBtn: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 14,
+    gap: 4,
+    paddingHorizontal: 10,
     backgroundColor: "white",
     paddingVertical: 9,
     borderRadius: 20,
@@ -1073,11 +1057,22 @@ const styles = StyleSheet.create({
     borderColor: C.primary,
   },
   mealTypeIcon: { fontSize: 14 },
-  mealTypeText: { fontSize: 13, fontWeight: "600", color: C.textMid },
+  mealTypeText: { fontSize: 10, fontWeight: "600", color: C.textMid },
   mealTypeTextDark: { color: "#8fc1a8" },
   mealTypeTextActive: { color: C.primaryDeep },
   mealTypeTextActiveDark: { color: C.primaryFaint },
-
+  mealTypeSelectorRow: {
+    flexDirection: "row",
+    flexWrap: "nowrap",
+    gap: 8,
+    marginBottom: 16,
+  },
+  mealTypeSelectorColumn: {
+    flexDirection: "column",
+    flexWrap: "nowrap",
+    gap: 8,
+    marginBottom: 16,
+  },
   // Search
   searchSection: { paddingHorizontal: 20, gap: 10, marginBottom: 4 },
   searchBar: {
@@ -1107,8 +1102,17 @@ const styles = StyleSheet.create({
   clearBtn: { fontSize: 14, color: C.textLight, paddingHorizontal: 4 },
   clearBtnDark: { color: "#8fc1a8" },
 
-  actionBtns: { flexDirection: "row", gap: 10 },
-  actionBtn: { flex: 1, borderRadius: 14, overflow: "hidden" },
+  actionBtns: {
+    flexDirection: "row",
+    gap: 12,
+    width: "100%",
+  },
+  actionBtn: {
+    flex: 1,
+    minWidth: 0,
+    borderRadius: 14,
+    overflow: "hidden",
+  },
   actionBtnGrad: {
     paddingVertical: 14,
     alignItems: "center",
@@ -1126,7 +1130,7 @@ const styles = StyleSheet.create({
   },
 
   // List
-  listContent: { paddingHorizontal: 20, paddingBottom: 40 },
+  listContent: { paddingBottom: 40 },
   listHeader: {
     fontSize: 12,
     fontWeight: "600",
@@ -1199,6 +1203,7 @@ const styles = StyleSheet.create({
   sheet: {
     position: "absolute",
     bottom: 0,
+    maxHeight: "90%",
     left: 0,
     right: 0,
     backgroundColor: C.card,
@@ -1208,15 +1213,7 @@ const styles = StyleSheet.create({
     paddingBottom: Platform.OS === "ios" ? 44 : 28,
   },
   sheetDark: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
     backgroundColor: "#0f2018",
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    padding: 24,
-    paddingBottom: Platform.OS === "ios" ? 44 : 28,
   },
   sheetHandle: {
     width: 36,

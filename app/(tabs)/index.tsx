@@ -4,11 +4,16 @@ import { useTheme } from "@/services/ThemeContext";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useFocusEffect } from "expo-router";
 import {
+  BadgeInfo,
   CookingPot,
+  Dumbbell,
   EggFried,
+  Gauge,
+  HeartPulse,
   LucideIcon,
   Popcorn,
   Sandwich,
+  ScrollText,
 } from "lucide-react-native";
 import { MotiView } from "moti";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -22,6 +27,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -169,6 +175,7 @@ function ThinMacroBar({
 }
 
 type LoggedItem = {
+  MealId: string;
   name: string;
   quantity: number;
   unit: string;
@@ -246,11 +253,36 @@ function LoggedFoodRow({
   );
 }
 
-function MealSection({ meal, index }: { meal: MealSection; index: number }) {
+function MealSection({
+  meal,
+  index,
+  onRefresh,
+}: {
+  meal: MealSection;
+  index: number;
+  onRefresh: () => void;
+}) {
   const { dark } = useTheme();
   const [expanded, setExpanded] = useState(true);
   const [selectedItem, setSelectedItem] = useState<LoggedItem | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const IconComponent = MEAL_ICONS[meal.mealType];
+
+  const handleDelete = async () => {
+    if (!selectedItem) return;
+    setDeleting(true);
+    try {
+      await fetch(`http://${IP}:3000/api/meals/item/${selectedItem.MealId}`, {
+        method: "DELETE",
+      });
+      setSelectedItem(null);
+      onRefresh();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const mealTotal = meal.items.reduce(
     (acc, item) => ({
@@ -418,7 +450,22 @@ function MealSection({ meal, index }: { meal: MealSection; index: number }) {
               ))}
             </View>
 
-            {/* TODO: Add delete item button */}
+            <TouchableOpacity
+              style={styles.deleteBtn}
+              className="bg-red-600 mb-2"
+              onPress={handleDelete}
+              activeOpacity={0.7}
+            >
+              {deleting ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <Text
+                  style={{ color: "#fff", fontWeight: "700", fontSize: 14 }}
+                >
+                  Delete
+                </Text>
+              )}
+            </TouchableOpacity>
             <TouchableOpacity
               style={[styles.detailClose, dark && styles.detailCloseDark]}
               onPress={() => setSelectedItem(null)}
@@ -439,12 +486,16 @@ function MealSection({ meal, index }: { meal: MealSection; index: number }) {
     </MotiView>
   );
 }
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function HomeScreen() {
   const { dark } = useTheme();
   const { user } = useAuth();
   const [plan, setPlan] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [showExercise, setShowExercise] = useState(false);
+  const [burned, setBurned] = useState("0");
+  const [SavedBurned, setSavedBurned] = useState("0");
   const [logged, setLogged] = useState({
     calories: 0,
     protein: 0,
@@ -464,11 +515,35 @@ export default function HomeScreen() {
     setMeals(data.meals);
   };
 
+  const fetchTodaysExercise = async () => {
+    if (!user?.uid) return;
+    try {
+      const res = await fetch(`http://${IP}:3000/exercise/${user.uid}`);
+      const data = await res.json();
+      if (!res.ok) return;
+      const total =
+        typeof data.totalBurned === "number"
+          ? data.totalBurned
+          : Array.isArray(data)
+            ? data.reduce(
+                (s: number, row: { caloriesBurned?: number }) =>
+                  s + (row.caloriesBurned ?? 0),
+                0,
+              )
+            : 0;
+      setSavedBurned(String(total));
+      setBurned(String(total));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   useFocusEffect(
     useCallback(() => {
       if (user?.uid) {
         fetchPlan();
         fetchTodaysMeals();
+        fetchTodaysExercise();
       }
     }, [user]),
   );
@@ -486,6 +561,9 @@ export default function HomeScreen() {
     }
   };
 
+  function logExercise() {
+    setShowExercise(true);
+  }
   const targets = {
     calories: plan?.targetCalories ?? 0,
     protein: plan?.targetProtein ?? 0,
@@ -493,9 +571,12 @@ export default function HomeScreen() {
     fat: plan?.targetFat ?? 0,
   };
 
+  const burnedCalories = parseInt(SavedBurned) || 0;
+  const effectiveCalories = Math.max(logged.calories - burnedCalories, 0);
+
   const calProgress =
-    targets.calories > 0 ? logged.calories / targets.calories : 0;
-  const remaining = Math.max(targets.calories - logged.calories, 0);
+    targets.calories > 0 ? effectiveCalories / targets.calories : 0;
+  const remaining = Math.max(targets.calories - effectiveCalories, 0);
   const ringSize = 136;
 
   const greeting = () => {
@@ -521,6 +602,31 @@ export default function HomeScreen() {
         </View>
       </SafeAreaView>
     );
+  }
+
+  async function handleSaveBurned() {
+    const n = parseInt(burned, 10);
+    if (!user?.uid || Number.isNaN(n) || n < 0) {
+      return;
+    }
+    try {
+      const res = await fetch(`http://${IP}:3000/saveExercise`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ firebaseUid: user.uid, burned: n }),
+      });
+      if (!res.ok) {
+        console.error("error saving exercise", await res.text());
+        return;
+      }
+      const saved = await res.json();
+      const kcal = saved?.caloriesBurned ?? n;
+      setSavedBurned(String(kcal));
+      setBurned(String(kcal));
+      setShowExercise(false);
+    } catch (e) {
+      console.error(e);
+    }
   }
 
   return (
@@ -586,7 +692,9 @@ export default function HomeScreen() {
                   progress={calProgress}
                 />
                 <View style={styles.ringInner}>
-                  <Text style={styles.ringKcal}>{logged.calories}</Text>
+                  <Text style={styles.ringKcal}>
+                    {Math.max(logged.calories - burnedCalories, 0)}
+                  </Text>
                   <Text style={styles.ringKcalSub}>kcal</Text>
                 </View>
               </View>
@@ -605,8 +713,111 @@ export default function HomeScreen() {
                 </View>
                 <View style={styles.statDivider} />
                 <View style={styles.statItem}>
-                  <Text style={styles.statVal}>0</Text>
-                  <Text style={styles.statLbl}>Burned</Text>
+                  <View style={styles.exContainer}>
+                    <View>
+                      <Text style={styles.statVal}>{SavedBurned}</Text>
+                      <Text style={styles.statLbl}>Burned</Text>
+                    </View>
+
+                    <MotiView
+                      from={{ opacity: 0, translateY: 16 }}
+                      animate={{ opacity: 1, translateY: 0 }}
+                      transition={{ type: "spring", delay: 180 }}
+                      style={{ marginBottom: 10 }}
+                    >
+                      <TouchableOpacity
+                        onPress={logExercise}
+                        activeOpacity={0.85}
+                        style={styles.ExBtnWrap}
+                      >
+                        <LinearGradient
+                          colors={["#31a340", "#1b7a28"]}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 1 }}
+                          style={styles.ExBtn}
+                        >
+                          <Text style={styles.ExBtnPlus}>+</Text>
+                          <Text style={styles.ExBtnText}>Log Exercise</Text>
+                        </LinearGradient>
+                      </TouchableOpacity>
+                    </MotiView>
+                  </View>
+                  <Modal
+                    visible={showExercise}
+                    transparent
+                    animationType="slide"
+                    onRequestClose={() => setShowExercise(false)}
+                  >
+                    <TouchableOpacity
+                      style={styles.detailOverlay}
+                      onPress={() => setShowExercise(false)}
+                    >
+                      <View
+                        style={[
+                          styles.detailSheetExercise,
+                          dark && styles.detailSheetDark,
+                        ]}
+                      >
+                        <TouchableOpacity className="bg-blue-700 rounded-lg p-5  mb-5  gap-2 justify-around flex-row self-start">
+                          <Text className="text-xl color-white font-bold">
+                            Log Your Exercise
+                          </Text>
+                          <ScrollText color={"white"} size={25}></ScrollText>
+                        </TouchableOpacity>
+                        <Text className={dark ? "text-white" : "text-lg mb-2"}>
+                          Update the number of calories you burned up to now
+                        </Text>
+                        <TextInput
+                          style={styles.input}
+                          placeholder="e.g. 200"
+                          value={burned}
+                          onChangeText={setBurned}
+                          keyboardType="number-pad"
+                          placeholderTextColor="#A0AEC0"
+                        />
+                        <TouchableOpacity
+                          onPress={() => {
+                            if (burned === "") {
+                              alert("Enter some number!");
+                            } else {
+                              handleSaveBurned();
+                            }
+                          }}
+                          style={styles.detailSave}
+                        >
+                          <Text style={styles.detailSaveText}>Save</Text>
+                        </TouchableOpacity>
+                        <View className="flex-row justify-around mt-8 mb-8">
+                          <HeartPulse
+                            size={50}
+                            color={dark ? "white" : "gray"}
+                          ></HeartPulse>
+                          <Dumbbell
+                            size={50}
+                            color={dark ? "white" : "gray"}
+                          ></Dumbbell>
+                          <Gauge
+                            size={50}
+                            color={dark ? "white" : "gray"}
+                          ></Gauge>
+                        </View>
+                        <View className="bg-blue-600 rounded-lg flex-col">
+                          <View className="w-full items-end p-2">
+                            <BadgeInfo size={30} color={"white"} />
+                          </View>
+                          <Text className="text-lg text-white ml-4 mr-4 mb-4 font-bold">
+                            Daily Steps: On average, you burn 35 calories per
+                            1,000 steps.
+                          </Text>
+                          <Text className="text-lg m- text-white m-4 font-bold">
+                            Gym: Strength training burns approximately 7–10
+                            calories per minute depending on intensity. Example:
+                            A 45-minute session ≈ 315–450 calories.
+                          </Text>
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  </Modal>
                 </View>
               </View>
             </View>
@@ -679,7 +890,12 @@ export default function HomeScreen() {
           {logged.calories ? (
             <View>
               {meals.map((meal, i) => (
-                <MealSection key={meal.mealType} meal={meal} index={i} />
+                <MealSection
+                  key={meal.mealType}
+                  meal={meal}
+                  index={i}
+                  onRefresh={fetchTodaysMeals}
+                />
               ))}
             </View>
           ) : (
@@ -711,6 +927,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 12,
+  },
+  input: {
+    backgroundColor: "white",
+    borderWidth: 1,
+    borderColor: "black",
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    color: "black",
   },
   loadingText: { fontSize: 14, color: C.textLight },
   loadingTextDark: { color: "#4a7a61" },
@@ -814,6 +1039,35 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
+  },
+  exContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  ExBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 2,
+    padding: 4,
+  },
+  ExBtnWrap: {
+    borderRadius: 18,
+    borderColor: "white",
+    borderWidth: 2,
+    overflow: "hidden",
+  },
+  ExBtnPlus: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "300",
+    lineHeight: 26,
+  },
+  ExBtnText: {
+    color: "#fff",
+    fontSize: 8,
+    fontWeight: "700",
+    letterSpacing: 0.3,
   },
   foodRowImage: {
     width: 44,
@@ -962,12 +1216,27 @@ const styles = StyleSheet.create({
   },
   detailSheet: {
     position: "absolute",
+    flexDirection: "column",
+    gap: 10,
     bottom: 0,
     left: 0,
     right: 0,
     backgroundColor: C.card,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
+    padding: 24,
+    paddingBottom: Platform.OS === "ios" ? 44 : 28,
+  },
+  detailSheetExercise: {
+    position: "absolute",
+    flexDirection: "column",
+    gap: 10,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    backgroundColor: C.card,
     padding: 24,
     paddingBottom: Platform.OS === "ios" ? 44 : 28,
   },
@@ -1025,10 +1294,27 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: C.border,
   },
+  detailSave: {
+    alignItems: "center",
+    paddingVertical: 14,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: C.border,
+    backgroundColor: C.primary,
+  },
   detailCloseDark: {
     borderColor: "rgba(45,184,122,0.25)",
   },
+  deleteBtn: {
+    alignItems: "center",
+    paddingVertical: 14,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: C.border,
+  },
+
   detailCloseText: { fontSize: 14, fontWeight: "600", color: C.textMid },
+  detailSaveText: { fontSize: 14, fontWeight: "600", color: "white" },
   detailCloseTextDark: { color: "#c8edd8" },
   detailImage: {
     width: "100%",
