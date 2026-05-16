@@ -14,6 +14,19 @@ app.use(express.urlencoded({ limit: "10mb", extended: true }));
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const USDA_KEY = process.env.USDA_KEY;
 
+/** Start of calendar day in the server’s local timezone (must match exercise `date` storage). */
+function startOfLocalDay(d = new Date()) {
+  const t = new Date(d);
+  t.setHours(0, 0, 0, 0);
+  return t;
+}
+
+function endOfLocalDay(dayStart) {
+  const t = new Date(dayStart);
+  t.setDate(t.getDate() + 1);
+  return t;
+}
+
 app.post("/api/onboarding", async (req, res) => {
   const {
     firebaseUid,
@@ -312,6 +325,54 @@ app.post("/api/food/analyse-photo", async (req, res) => {
   }
 });
 
+app.post("/api/meals/recent/log", async (req, res) => {
+  const { firebaseUid, MealId, FoodId, quantity, unit, mealType, imageUrl } =
+    req.body;
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const user = await tx.user.findUnique({ where: { firebaseUid } });
+      if (!user) throw new Error("User not found");
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const meal = await tx.meal.upsert({
+        where: {
+          userId_name_date: {
+            // needs @@unique in schema
+            userId: user.id,
+            name: mealType,
+            date: today,
+          },
+        },
+        update: {},
+        create: {
+          userId: user.id,
+          name: mealType,
+          date: today,
+        },
+      });
+
+      // Add the food item to today's meal
+      const mealItem = await tx.mealItem.create({
+        data: {
+          mealId: meal.id,
+          foodItemId: FoodId,
+          quantity,
+          unit,
+        },
+      });
+
+      return mealItem;
+    });
+
+    res.status(200).json(result);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to log recent meal" });
+  }
+});
+
 app.post("/api/meals/log", async (req, res) => {
   const {
     firebaseUid,
@@ -338,12 +399,13 @@ app.post("/api/meals/log", async (req, res) => {
         where: { name_calories: { name: foodName, calories } }, // needs @@unique in schema
         update: {},
         create: {
-          name: foodName, // ← not foodName, schema field is "name"
+          name: foodName,
           calories,
           protein,
           carbs,
           fat,
           isCustom: true,
+          imageUri: imageUrl ?? null,
         },
       });
 
@@ -360,14 +422,11 @@ app.post("/api/meals/log", async (req, res) => {
             date: today,
           },
         },
-        update: {
-          ...(imageUrl ? { imageUri: imageUrl } : {}),
-        },
+        update: {},
         create: {
           userId: user.id,
           name: mealType,
           date: today,
-          imageUri: imageUrl ?? null,
         },
       });
 
@@ -434,6 +493,7 @@ app.get("/api/meals/today/:firebaseUid", async (req, res) => {
       totalFat += fat;
 
       return {
+        MealId: item.id,
         name: item.foodItem.name,
         quantity: item.quantity,
         unit: item.unit,
@@ -441,7 +501,7 @@ app.get("/api/meals/today/:firebaseUid", async (req, res) => {
         protein: pro,
         carbs: carb,
         fat: fat,
-        imageUri: meal.imageUri ?? null,
+        imageUri: item.foodItem.imageUri ?? null,
         per: item.foodItem.isCustom ? "1 serving" : "100g",
         source: item.foodItem.isCustom ? "ai" : "usda",
       };
@@ -598,7 +658,7 @@ app.get("/api/meals/recent/:firebaseUid", async (req, res) => {
         protein: item.foodItem.protein,
         carbs: item.foodItem.carbs ?? 0,
         fat: item.foodItem.fat ?? 0,
-        imageUri: item.meal.imageUri ?? null,
+        imageUri: item.foodItem.imageUri ?? null,
         per: item.foodItem.isCustom ? "1 serving" : "100g",
         source: item.foodItem.isCustom ? "ai" : "usda",
       }));
@@ -607,6 +667,100 @@ app.get("/api/meals/recent/:firebaseUid", async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Failed to fetch recent meals" });
+  }
+});
+
+app.delete("/api/meals/item/:mealItemId", async (req, res) => {
+  const { mealItemId } = req.params;
+  try {
+    const deleted = await prisma.mealItem.delete({
+      where: { id: mealItemId },
+    });
+
+    const remaining = await prisma.mealItem.count({
+      where: { mealId: deleted.mealId },
+    });
+
+    if (remaining === 0) {
+      await prisma.meal.delete({
+        where: { id: deleted.mealId },
+      });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to delete meal item" });
+  }
+});
+
+app.post("/saveExercise", async (req, res) => {
+  const { firebaseUid, burned } = req.body;
+  const caloriesBurned = Number.parseInt(String(burned ?? ""), 10);
+
+  if (!firebaseUid || Number.isNaN(caloriesBurned) || caloriesBurned < 0) {
+    return res.status(400).json({
+      error: "firebaseUid and a non-negative integer `burned` are required",
+    });
+  }
+
+  const dayStart = startOfLocalDay();
+
+  try {
+    const exercise = await prisma.$transaction(async (tx) => {
+      const user = await tx.user.findUnique({ where: { firebaseUid } });
+      if (!user) throw new Error("User not found");
+
+      return tx.exercise.upsert({
+        where: {
+          userId_date: {
+            userId: user.id,
+            date: dayStart,
+          },
+        },
+        update: { caloriesBurned },
+        create: {
+          userId: user.id,
+          caloriesBurned,
+          date: dayStart,
+        },
+      });
+    });
+
+    res.status(200).json(exercise);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to save exercise" });
+  }
+});
+
+app.get("/exercise/:firebaseUid", async (req, res) => {
+  const { firebaseUid } = req.params;
+
+  try {
+    const user = await prisma.user.findUnique({ where: { firebaseUid } });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const today = startOfLocalDay();
+    const tomorrow = endOfLocalDay(today);
+
+    const exercises = await prisma.exercise.findMany({
+      where: {
+        userId: user.id,
+        date: { gte: today, lt: tomorrow },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    const totalBurned = exercises.reduce(
+      (sum, row) => sum + row.caloriesBurned,
+      0,
+    );
+
+    res.json({ exercises, totalBurned });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to fetch exercise" });
   }
 });
 

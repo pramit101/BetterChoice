@@ -16,6 +16,7 @@ model User {
   healthPlan  HealthPlan?
   meals       Meal[]
   profile     Profile?
+  exercises    Exercise[] 
 }
 
 model Profile {
@@ -55,9 +56,23 @@ model FoodItem {
   carbs     Int?
   barcode   String?    @unique
   isCustom  Boolean    @default(false)
+  imageUri  String? 
   mealItems MealItem[]
 
   @@unique([name, calories]) 
+}
+
+model Exercise {
+  id             String   @id @default(uuid())
+  userId         String
+  name           String?
+  caloriesBurned Int
+  /// Start of calendar day (server local); one row per user per day for cumulative burn.
+  date           DateTime @default(now())
+  createdAt      DateTime @default(now())
+  user           User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, date])
 }
 
 model Meal {
@@ -65,7 +80,6 @@ model Meal {
   userId    String
   name      String
   date      DateTime @default(now())
-  imageUri  String?
   createdAt DateTime   @default(now())
   user      User       @relation(fields: [userId], references: [id])
   items     MealItem[]
