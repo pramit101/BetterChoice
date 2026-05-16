@@ -521,6 +521,106 @@ app.get("/api/meals/today/:firebaseUid", async (req, res) => {
   });
 });
 
+// Returns calorie totals for the past 7 days (including today) for calendar indicators
+app.get("/api/meals/week-summary/:firebaseUid", async (req, res) => {
+  const { firebaseUid } = req.params;
+
+  const user = await prisma.user.findUnique({ where: { firebaseUid } });
+  if (!user) return res.status(404).json({ error: "User not found" });
+
+  const end = new Date();
+  end.setHours(23, 59, 59, 999);
+  const start = new Date();
+  start.setDate(start.getDate() - 6);
+  start.setHours(0, 0, 0, 0);
+
+  const meals = await prisma.meal.findMany({
+    where: { userId: user.id, date: { gte: start, lte: end } },
+    include: { items: { include: { foodItem: true } } },
+  });
+
+  const dailyCalories = {};
+  meals.forEach((meal) => {
+    const d = meal.date;
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    if (!dailyCalories[key]) dailyCalories[key] = 0;
+    meal.items.forEach((item) => {
+      dailyCalories[key] += Math.round(
+        item.foodItem.calories * (item.quantity / 100),
+      );
+    });
+  });
+
+  const summary = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    summary.push({ date: key, calories: dailyCalories[key] ?? 0 });
+  }
+
+  res.json(summary);
+});
+
+// Returns meals for a specific date (YYYY-MM-DD)
+app.get("/api/meals/date/:firebaseUid/:date", async (req, res) => {
+  const { firebaseUid, date } = req.params;
+
+  const [year, month, day] = date.split("-").map(Number);
+  const start = new Date(year, month - 1, day, 0, 0, 0, 0);
+  const end = new Date(year, month - 1, day + 1, 0, 0, 0, 0);
+
+  const user = await prisma.user.findUnique({ where: { firebaseUid } });
+  if (!user) return res.status(404).json({ error: "User not found" });
+
+  const meals = await prisma.meal.findMany({
+    where: { userId: user.id, date: { gte: start, lt: end } },
+    include: { items: { include: { foodItem: true } } },
+  });
+
+  let totalCalories = 0,
+    totalProtein = 0,
+    totalCarbs = 0,
+    totalFat = 0;
+
+  const mealsWithTotals = meals.map((meal) => {
+    const items = meal.items.map((item) => {
+      const scale = item.quantity / 100;
+      const cal = Math.round(item.foodItem.calories * scale);
+      const pro = Math.round(item.foodItem.protein * scale * 10) / 10;
+      const carb = Math.round((item.foodItem.carbs ?? 0) * scale * 10) / 10;
+      const fat = Math.round((item.foodItem.fat ?? 0) * scale * 10) / 10;
+      totalCalories += cal;
+      totalProtein += pro;
+      totalCarbs += carb;
+      totalFat += fat;
+      return {
+        name: item.foodItem.name,
+        quantity: item.quantity,
+        unit: item.unit,
+        calories: cal,
+        protein: pro,
+        carbs: carb,
+        fat: fat,
+        imageUri: meal.imageUri ?? null,
+        per: item.foodItem.isCustom ? "1 serving" : "100g",
+        source: item.foodItem.isCustom ? "ai" : "usda",
+      };
+    });
+    return { mealType: meal.name, items };
+  });
+
+  res.json({
+    meals: mealsWithTotals,
+    totals: {
+      calories: totalCalories,
+      protein: totalProtein,
+      carbs: totalCarbs,
+      fat: totalFat,
+    },
+  });
+});
+
 app.get("/api/meals/recent/:firebaseUid", async (req, res) => {
   const { firebaseUid } = req.params;
 
