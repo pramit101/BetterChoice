@@ -586,6 +586,8 @@ export default function HomeScreen() {
   const { user } = useAuth();
   const [plan, setPlan] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const hasFetchedPlan = useRef(false);
+  const selectedDateRef = useRef(localDateStr());
   const [showExercise, setShowExercise] = useState(false);
   const [burned, setBurned] = useState("0");
   const [SavedBurned, setSavedBurned] = useState("0");
@@ -666,13 +668,18 @@ export default function HomeScreen() {
   }, [user]);
 
   const fetchPlan = useCallback(async () => {
+    // Only fetch once per session — the plan never changes during normal use
+    if (hasFetchedPlan.current) return;
+    hasFetchedPlan.current = true;
     setLoading(true);
     try {
       const res = await fetch(`http://${IP}:3000/api/health-plan/${user?.uid}`);
       const data = await res.json();
       if (res.ok) setPlan(data);
+      else hasFetchedPlan.current = false; // allow retry if server errored
     } catch (e) {
       console.error(e);
+      hasFetchedPlan.current = false;
     } finally {
       setLoading(false);
     }
@@ -683,10 +690,15 @@ export default function HomeScreen() {
       if (user?.uid) {
         fetchPlan();
         fetchWeekSummary();
-        fetchMealsForDate(selectedDate);
+        fetchMealsForDate(selectedDateRef.current);
       }
     }, [user]),
   );
+
+  // Keep ref current so useFocusEffect always sees the latest selected date
+  useEffect(() => {
+    selectedDateRef.current = selectedDate;
+  }, [selectedDate]);
 
   // Refresh meals whenever the selected date changes
   useEffect(() => {
@@ -728,7 +740,7 @@ export default function HomeScreen() {
     return `${DAY_NAMES[date.getDay()]} ${d} ${date.toLocaleString("default", { month: "short" })}`;
   };
 
-  if (loading) {
+  if (loading && !plan) {
     return (
       <SafeAreaView
         style={[styles.root, dark && styles.rootDark]}
