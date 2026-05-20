@@ -9,7 +9,8 @@ const customFoods = [
     fat: 5,
     source: "custom",
     per: "1 serving",
-    imageUri: null,
+    imageUri:
+      "https://tysuyhaqmgldtusocftj.supabase.co/storage/v1/object/public/meal-images/custom_foods/dal_bhat.jpg",
   },
   {
     id: "custom_dhido",
@@ -20,7 +21,8 @@ const customFoods = [
     fat: 3,
     source: "custom",
     per: "1 serving",
-    imageUri: null,
+    imageUri:
+      "https://tysuyhaqmgldtusocftj.supabase.co/storage/v1/object/public/meal-images/custom_foods/dhiido.jpeg",
   },
   {
     id: "custom_roti",
@@ -31,7 +33,8 @@ const customFoods = [
     fat: 2,
     source: "custom",
     per: "1 piece",
-    imageUri: null,
+    imageUri:
+      "https://tysuyhaqmgldtusocftj.supabase.co/storage/v1/object/public/meal-images/custom_foods/roti.webp",
   },
   {
     id: "custom_sel_roti",
@@ -42,7 +45,8 @@ const customFoods = [
     fat: 6,
     source: "custom",
     per: "1 piece",
-    imageUri: null,
+    imageUri:
+      "https://tysuyhaqmgldtusocftj.supabase.co/storage/v1/object/public/meal-images/custom_foods/sel_roti.webp",
   },
   {
     id: "custom_chiura",
@@ -53,64 +57,82 @@ const customFoods = [
     fat: 1,
     source: "custom",
     per: "100g",
-    imageUri: null,
+    imageUri:
+      "https://tysuyhaqmgldtusocftj.supabase.co/storage/v1/object/public/meal-images/custom_foods/chuira.webp",
   },
 
   // ── Momo ─────────────────────────────────────────────────────────────────────
   {
     id: "custom_chicken_momo",
-    name: "Chicken Momo Steamed (6 pieces)",
-    calories: 280,
-    protein: 20,
-    carbs: 28,
-    fat: 8,
+    name: "Chicken Momo Steamed (10 pieces)",
+    calories: 467,
+    protein: 33,
+    carbs: 46,
+    fat: 13,
     source: "custom",
-    per: "6 pieces",
-    imageUri: null,
+    per: "10 pieces",
+    imageUri:
+      "https://tysuyhaqmgldtusocftj.supabase.co/storage/v1/object/public/meal-images/custom_foods/momo.jpg",
   },
   {
     id: "custom_buff_momo",
-    name: "Buff Momo Steamed (6 pieces)",
-    calories: 260,
-    protein: 18,
-    carbs: 28,
-    fat: 7,
+    name: "Buff Momo Steamed (10 pieces)",
+    calories: 432,
+    protein: 30,
+    carbs: 47,
+    fat: 11.6,
     source: "custom",
-    per: "6 pieces",
-    imageUri: null,
+    per: "10 pieces",
+    imageUri:
+      "https://tysuyhaqmgldtusocftj.supabase.co/storage/v1/object/public/meal-images/custom_foods/buff_momo.jpg",
   },
   {
     id: "custom_veg_momo",
-    name: "Veg Momo Steamed (6 pieces)",
-    calories: 220,
-    protein: 8,
-    carbs: 32,
-    fat: 6,
+    name: "Veg Momo Steamed (10 pieces)",
+    calories: 365,
+    protein: 13,
+    carbs: 53,
+    fat: 10,
     source: "custom",
-    per: "6 pieces",
-    imageUri: null,
+    per: "10 pieces",
+    imageUri:
+      "https://tysuyhaqmgldtusocftj.supabase.co/storage/v1/object/public/meal-images/custom_foods/veg_momo.webp",
+  },
+  {
+    id: "custom_chilly_momo_10pc",
+    name: "Chilly Momo (10 pieces, Nepali style)",
+    calories: 650,
+    protein: 22,
+    carbs: 62,
+    fat: 30,
+    source: "custom",
+    per: "10 pieces",
+    imageUri:
+      "https://tysuyhaqmgldtusocftj.supabase.co/storage/v1/object/public/meal-images/custom_foods/c_momo.jpg",
   },
   {
     id: "custom_fried_momo",
-    name: "Fried Momo (6 pieces)",
-    calories: 360,
-    protein: 18,
-    carbs: 30,
-    fat: 16,
+    name: "Fried Momo (10 pieces)",
+    calories: 600,
+    protein: 30,
+    carbs: 50,
+    fat: 27,
     source: "custom",
-    per: "6 pieces",
-    imageUri: null,
+    per: "10 pieces",
+    imageUri:
+      "https://tysuyhaqmgldtusocftj.supabase.co/storage/v1/object/public/meal-images/custom_foods/fried.avif",
   },
   {
     id: "custom_jhol_momo",
-    name: "Jhol Momo (6 pieces with soup)",
-    calories: 320,
-    protein: 20,
-    carbs: 34,
-    fat: 10,
+    name: "Jhol Momo (10 pieces with soup)",
+    calories: 533,
+    protein: 33.3,
+    carbs: 56.7,
+    fat: 16.7,
     source: "custom",
     per: "1 bowl",
-    imageUri: null,
+    imageUri:
+      "https://tysuyhaqmgldtusocftj.supabase.co/storage/v1/object/public/meal-images/custom_foods/jhol_momo.jpg",
   },
 
   // ── Curries & Sides ──────────────────────────────────────────────────────────
@@ -224,7 +246,8 @@ const customFoods = [
     fat: 3,
     source: "custom",
     per: "1 piece",
-    imageUri: null,
+    imageUri:
+      "https://tysuyhaqmgldtusocftj.supabase.co/storage/v1/object/public/meal-images/custom_foods/yomari.jpg",
   },
   {
     id: "custom_samay_baji",
@@ -259,7 +282,8 @@ const customFoods = [
     fat: 8,
     source: "custom",
     per: "1 bowl",
-    imageUri: null,
+    imageUri:
+      "https://tysuyhaqmgldtusocftj.supabase.co/storage/v1/object/public/meal-images/custom_foods/thukpa.jpg",
   },
   {
     id: "custom_wai_wai",
@@ -270,7 +294,8 @@ const customFoods = [
     fat: 16,
     source: "custom",
     per: "1 packet",
-    imageUri: null,
+    imageUri:
+      "https://tysuyhaqmgldtusocftj.supabase.co/storage/v1/object/public/meal-images/custom_foods/wai_wai.jpg",
   },
 
   // ── Desserts & Drinks ─────────────────────────────────────────────────────────
@@ -283,7 +308,8 @@ const customFoods = [
     fat: 9,
     source: "custom",
     per: "1 bowl",
-    imageUri: null,
+    imageUri:
+      "https://tysuyhaqmgldtusocftj.supabase.co/storage/v1/object/public/meal-images/custom_foods/kheer.jpg",
   },
   {
     id: "custom_juju_dhau",
@@ -317,6 +343,96 @@ const customFoods = [
     source: "custom",
     per: "1 glass",
     imageUri: null,
+  },
+  {
+    id: "custom_chatpate_dry",
+    name: "Chatpate (Dry)",
+    calories: 420,
+    protein: 9,
+    carbs: 58,
+    fat: 17,
+    source: "custom",
+    per: "1 serving",
+    imageUri:
+      "https://tysuyhaqmgldtusocftj.supabase.co/storage/v1/object/public/meal-images/custom_foods/dry_chatpat.jpeg",
+  },
+
+  {
+    id: "custom_chatpate_gilo",
+    name: "Chatpate (Gilo)",
+    calories: 360,
+    protein: 8,
+    carbs: 52,
+    fat: 13,
+    source: "custom",
+    per: "1 serving",
+    imageUri:
+      "https://tysuyhaqmgldtusocftj.supabase.co/storage/v1/object/public/meal-images/custom_foods/gilo_chatpat.webp",
+  },
+
+  {
+    id: "custom_chowmein",
+    name: "Chowmein",
+    calories: 520,
+    protein: 14,
+    carbs: 68,
+    fat: 20,
+    source: "custom",
+    per: "1 plate",
+    imageUri:
+      "https://tysuyhaqmgldtusocftj.supabase.co/storage/v1/object/public/meal-images/custom_foods/chowmein.png",
+  },
+
+  {
+    id: "custom_laphing",
+    name: "Laphing",
+    calories: 280,
+    protein: 6,
+    carbs: 42,
+    fat: 10,
+    source: "custom",
+    per: "1 serving",
+    imageUri:
+      "https://tysuyhaqmgldtusocftj.supabase.co/storage/v1/object/public/meal-images/custom_foods/laphing.png",
+  },
+
+  {
+    id: "custom_keema_noodles",
+    name: "Keema Noodles",
+    calories: 640,
+    protein: 28,
+    carbs: 70,
+    fat: 28,
+    source: "custom",
+    per: "1 plate",
+    imageUri:
+      "https://tysuyhaqmgldtusocftj.supabase.co/storage/v1/object/public/meal-images/custom_foods/keema.webp",
+  },
+
+  {
+    id: "custom_shebhakle",
+    name: "Shaphaley",
+    calories: 330,
+    protein: 7,
+    carbs: 46,
+    fat: 13,
+    source: "custom",
+    per: "1 serving",
+    imageUri:
+      "https://tysuyhaqmgldtusocftj.supabase.co/storage/v1/object/public/meal-images/custom_foods/shaphaley.jpg",
+  },
+
+  {
+    id: "custom_pani_puri_10pc",
+    name: "Pani Puri (10 pieces)",
+    calories: 380,
+    protein: 8,
+    carbs: 62,
+    fat: 11,
+    source: "custom",
+    per: "10 pieces",
+    imageUri:
+      "https://tysuyhaqmgldtusocftj.supabase.co/storage/v1/object/public/meal-images/custom_foods/pani_puri.jpg",
   },
 ];
 

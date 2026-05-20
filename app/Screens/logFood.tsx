@@ -1,14 +1,3 @@
-/**
- * LogFoodScreen.tsx
- *
- * Three entry points:
- *  1. Text search  → /api/food/search?q=  (USDA + Open Food Facts)
- *  2. Barcode scan → expo-camera           (Open Food Facts by barcode)
- *  3. AI photo     → Gemini Vision         (estimated macros from image)
- *
- * TODO markers show where to wire real logic once dependencies are installed.
- */
-
 import { IP } from "@/constants/IP";
 import { useAuth } from "@/services/AuthContext";
 import { useTheme } from "@/services/ThemeContext";
@@ -457,6 +446,15 @@ function BarcodeScannerModal({
   const [permission, requestPermission] = useCameraPermissions();
   const [isScanning, setIsScanning] = useState(true);
   const [loading, setLoading] = useState(false);
+  /** Blocks duplicate callbacks before React re-renders after the first scan. */
+  const scanLockRef = useRef(false);
+
+  useEffect(() => {
+    if (!visible) return;
+    scanLockRef.current = false;
+    setIsScanning(true);
+    setLoading(false);
+  }, [visible]);
 
   // Handle Permissions
   if (visible && !permission) return null; // Loading permissions
@@ -482,43 +480,81 @@ function BarcodeScannerModal({
   }
 
   const handleBarcodeScanned = async ({ data }: { data: string }) => {
-    if (!isScanning) return;
-
-    setIsScanning(false); // Pause scanner to prevent multiple rapid scans
+    if (!isScanning || scanLockRef.current) return;
+    scanLockRef.current = true;
+    setIsScanning(false);
     setLoading(true);
 
-    try {
-      console.log(data);
-      // Real API call to Open Food Facts
-      const response = await fetch(
-        `https://world.openfoodfacts.org/api/v2/product/${data}.json`,
-      );
-      const result = await response.json();
+    const code = data.trim();
+    if (!code) {
+      scanLockRef.current = false;
+      setIsScanning(true);
+      setLoading(false);
+      return;
+    }
 
-      if (result.status === 1) {
-        const product = result.product;
+    try {
+      const response = await fetch(
+        `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json`,
+      );
+      const raw = await response.text();
+      let result: { status?: number; product?: Record<string, unknown> };
+      try {
+        result = JSON.parse(raw) as typeof result;
+      } catch {
+        throw new Error("bad_json");
+      }
+
+      if (!response.ok) {
+        throw new Error(`http_${response.status}`);
+      }
+
+      if (result.status === 1 && result.product) {
+        const product = result.product as {
+          product_name?: string;
+          nutriments?: Record<string, number | undefined>;
+        };
         onFound({
-          id: data,
+          id: code,
           name: product.product_name || "Unknown Item",
           calories: Math.round(product.nutriments?.["energy-kcal_100g"] || 0),
           protein: product.nutriments?.proteins_100g || 0,
           carbs: product.nutriments?.carbohydrates_100g || 0,
           fat: product.nutriments?.fat_100g || 0,
-          barcode: data,
+          barcode: code,
           per: "100g",
           source: "off",
         });
         onClose();
       } else {
         Alert.alert(
-          "Not Found",
-          "We couldn't find this item in the database.",
-          [{ text: "Try Again", onPress: () => setIsScanning(true) }],
+          "Not found",
+          "This barcode is not in the Open Food Facts catalog. Try searching by name.",
+          [
+            {
+              text: "Try again",
+              onPress: () => {
+                scanLockRef.current = false;
+                setIsScanning(true);
+              },
+            },
+          ],
         );
       }
-    } catch (error) {
-      Alert.alert("Error", "Failed to reach the database.");
-      setIsScanning(true);
+    } catch {
+      Alert.alert(
+        "Connection problem",
+        "Could not load product data from Open Food Facts. Check your internet connection and try again.",
+        [
+          {
+            text: "Try again",
+            onPress: () => {
+              scanLockRef.current = false;
+              setIsScanning(true);
+            },
+          },
+        ],
+      );
     } finally {
       setLoading(false);
     }
@@ -539,29 +575,27 @@ function BarcodeScannerModal({
 
           <Text style={styles.scannerTitle}>Scan Barcode</Text>
 
-          {/* REAL EXPO CAMERA VIEW */}
-          <CameraView
-            style={styles.scannerViewfinder}
-            barcodeScannerSettings={{
-              barcodeTypes: ["ean13", "ean8", "upc_a", "upc_e"],
-            }}
-            onBarcodeScanned={isScanning ? handleBarcodeScanned : undefined}
-          >
-            {/* Visual scan line animation or corners */}
-            <View style={styles.scannerCornerTL} />
-            <View style={styles.scannerCornerTR} />
-            <View style={styles.scannerCornerBL} />
-            <View style={styles.scannerCornerBR} />
-
+          <View style={styles.scannerViewfinderWrap}>
+            <CameraView
+              style={styles.scannerCamera}
+              barcodeScannerSettings={{
+                barcodeTypes: ["ean13", "ean8", "upc_a", "upc_e"],
+              }}
+              onBarcodeScanned={isScanning ? handleBarcodeScanned : undefined}
+            />
+            <View style={styles.scannerCornerTL} pointerEvents="none" />
+            <View style={styles.scannerCornerTR} pointerEvents="none" />
+            <View style={styles.scannerCornerBL} pointerEvents="none" />
+            <View style={styles.scannerCornerBR} pointerEvents="none" />
             {loading && (
-              <View style={styles.loadingOverlay}>
+              <View style={styles.loadingOverlay} pointerEvents="none">
                 <ActivityIndicator color="#fff" size="large" />
                 <Text style={{ color: "white", marginTop: 10 }}>
                   Fetching data...
                 </Text>
               </View>
             )}
-          </CameraView>
+          </View>
 
           <Text style={styles.scannerHint}>Point camera at the barcode</Text>
         </View>
@@ -880,9 +914,7 @@ export default function LogFoodScreen() {
                 carbs: item.carbs ?? 0,
                 fat: item.fat ?? 0,
                 imageUrl:
-                  item.source === "ai"
-                    ? aiImageUrl
-                    : (item.imageUri ?? null),
+                  item.source === "ai" ? aiImageUrl : (item.imageUri ?? null),
               }
             : {
                 // Store scaled nutrition; quantity = grams
@@ -893,7 +925,8 @@ export default function LogFoodScreen() {
                 unit: "g",
                 calories: Math.round((item.calories * grams) / 100),
                 protein: Math.round(((item.protein * grams) / 100) * 10) / 10,
-                carbs: Math.round((((item.carbs ?? 0) * grams) / 100) * 10) / 10,
+                carbs:
+                  Math.round((((item.carbs ?? 0) * grams) / 100) * 10) / 10,
                 fat: Math.round((((item.fat ?? 0) * grams) / 100) * 10) / 10,
                 imageUrl: null,
               },
@@ -1005,7 +1038,7 @@ export default function LogFoodScreen() {
           </View>
         }
         renderItem={({ item }) => (
-          <View style={{ paddingHorizontal: 20 }}>
+          <View style={{ paddingHorizontal: 20, marginTop: 5 }}>
             <FoodRow
               item={item}
               onPress={() => {
@@ -1415,15 +1448,17 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     marginBottom: 32,
   },
-  scannerViewfinder: {
+  scannerViewfinderWrap: {
     width: width * 0.75,
     height: width * 0.75,
     borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.05)",
-    alignItems: "center",
-    justifyContent: "center",
+    overflow: "hidden",
     marginBottom: 28,
     position: "relative",
+    backgroundColor: "rgba(255,255,255,0.05)",
+  },
+  scannerCamera: {
+    ...StyleSheet.absoluteFillObject,
   },
   scannerCornerTL: {
     position: "absolute",

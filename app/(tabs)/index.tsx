@@ -180,7 +180,6 @@ function ThinMacroBar({
   );
 }
 
-// ─── Week Calendar Strip ──────────────────────────────────────────────────────
 function WeekCalendar({
   selectedDate,
   onSelectDate,
@@ -221,16 +220,20 @@ function WeekCalendar({
           const summary = weekSummary.find((s) => s.date === dateStr);
           const calories = summary?.calories ?? 0;
 
-          let circleColor = dark ? "#1e3a2a" : "#e8f5ed";
-          let dotColor = dark ? "#2a4a35" : "#d4ead9";
+          var circleColor = dark ? "#1e3a2a" : "#e8f5ed";
+          var dotColor = dark ? "#2a4a35" : "#d4ead9";
+          let isGreen = false;
+          let isYellow = false;
           if (calories > 0 && targetCalories > 0) {
             const pct = calories / targetCalories;
             if (pct >= 0.8) {
               circleColor = "#2db87a";
               dotColor = "#2db87a";
+              isGreen = true;
             } else {
               circleColor = "#f6a623";
               dotColor = "#f6a623";
+              isYellow = true;
             }
           }
 
@@ -255,14 +258,21 @@ function WeekCalendar({
                 style={[
                   styles.calCircle,
                   { backgroundColor: circleColor },
-                  isSelected && styles.calCircleSelected,
+                  isSelected && isGreen
+                    ? { borderWidth: 2.5, borderColor: "#0af04f" }
+                    : isSelected && {
+                        borderWidth: 2.5,
+                        borderColor: C.primary,
+                      },
                 ]}
               >
                 <Text
                   style={[
                     styles.calDayNum,
                     calories > 0 && { color: "#fff" },
-                    isSelected && styles.calDayNumSelected,
+                    (isSelected && isGreen) || isYellow
+                      ? { color: "white" }
+                      : isSelected && { color: C.primary },
                     !calories &&
                       !isSelected && [
                         styles.calDayNumEmpty,
@@ -374,7 +384,15 @@ function LoggedFoodRow({
   );
 }
 
-function MealSectionCard({ meal, index }: { meal: MealSection; index: number }) {
+function MealSectionCard({
+  meal,
+  index,
+  onRefresh,
+}: {
+  meal: MealSection;
+  index: number;
+  onRefresh?: () => void;
+}) {
   const { dark } = useTheme();
   const [expanded, setExpanded] = useState(true);
   const [selectedItem, setSelectedItem] = useState<LoggedItem | null>(null);
@@ -389,7 +407,7 @@ function MealSectionCard({ meal, index }: { meal: MealSection; index: number }) 
         method: "DELETE",
       });
       setSelectedItem(null);
-      onRefresh();
+      onRefresh?.();
     } catch (e) {
       console.error(e);
     } finally {
@@ -606,21 +624,7 @@ export default function HomeScreen() {
 
   const todayStr = localDateStr();
 
-  const fetchMealsForDate = useCallback(
-    async (date: string) => {
-      if (!user?.uid) return;
-      const isToday = date === todayStr;
-      const url = isToday
-        ? `http://${IP}:3000/api/meals/today/${user.uid}`
-        : `http://${IP}:3000/api/meals/date/${user.uid}/${date}`;
-      try {
-        const res = await fetch(url);
-        const data = await res.json();
-        setLogged(data.totals);
-        setMeals(data.meals);
-      } catch (e) {
-        console.error(e);
-  const fetchTodaysExercise = async () => {
+  const fetchTodaysExercise = useCallback(async () => {
     if (!user?.uid) return;
     try {
       const res = await fetch(`http://${IP}:3000/exercise/${user.uid}`);
@@ -641,14 +645,22 @@ export default function HomeScreen() {
     } catch (e) {
       console.error(e);
     }
-  };
+  }, [user]);
 
-  useFocusEffect(
-    useCallback(() => {
-      if (user?.uid) {
-        fetchPlan();
-        fetchTodaysMeals();
-        fetchTodaysExercise();
+  const fetchMealsForDate = useCallback(
+    async (date: string) => {
+      if (!user?.uid) return;
+      const isToday = date === todayStr;
+      const url = isToday
+        ? `http://${IP}:3000/api/meals/today/${user.uid}`
+        : `http://${IP}:3000/api/meals/date/${user.uid}/${date}`;
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+        setLogged(data.totals);
+        setMeals(data.meals);
+      } catch (e) {
+        console.error(e);
       }
     },
     [user, todayStr],
@@ -880,28 +892,30 @@ export default function HomeScreen() {
                       <Text style={styles.statLbl}>Burned</Text>
                     </View>
 
-                    <MotiView
-                      from={{ opacity: 0, translateY: 16 }}
-                      animate={{ opacity: 1, translateY: 0 }}
-                      transition={{ type: "spring", delay: 180 }}
-                      style={{ marginBottom: 10 }}
-                    >
-                      <TouchableOpacity
-                        onPress={logExercise}
-                        activeOpacity={0.85}
-                        style={styles.ExBtnWrap}
+                    {isViewingToday && (
+                      <MotiView
+                        from={{ opacity: 0, translateY: 16 }}
+                        animate={{ opacity: 1, translateY: 0 }}
+                        transition={{ type: "spring", delay: 180 }}
+                        style={{ marginBottom: 10 }}
                       >
-                        <LinearGradient
-                          colors={["#31a340", "#1b7a28"]}
-                          start={{ x: 0, y: 0 }}
-                          end={{ x: 1, y: 1 }}
-                          style={styles.ExBtn}
+                        <TouchableOpacity
+                          onPress={logExercise}
+                          activeOpacity={0.85}
+                          style={styles.ExBtnWrap}
                         >
-                          <Text style={styles.ExBtnPlus}>+</Text>
-                          <Text style={styles.ExBtnText}>Log Exercise</Text>
-                        </LinearGradient>
-                      </TouchableOpacity>
-                    </MotiView>
+                          <LinearGradient
+                            colors={["#31a340", "#1b7a28"]}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={styles.ExBtn}
+                          >
+                            <Text style={styles.ExBtnPlus}>+</Text>
+                            <Text style={styles.ExBtnText}>Log Exercise</Text>
+                          </LinearGradient>
+                        </TouchableOpacity>
+                      </MotiView>
+                    )}
                   </View>
                   <Modal
                     visible={showExercise}
@@ -919,7 +933,7 @@ export default function HomeScreen() {
                           dark && styles.detailSheetDark,
                         ]}
                       >
-                        <TouchableOpacity className="bg-blue-700 rounded-lg p-5  mb-5  gap-2 justify-around flex-row self-start">
+                        <TouchableOpacity className="bg-green-700 rounded-lg p-5  mb-5  gap-2 justify-around flex-row self-start">
                           <Text className="text-xl color-white font-bold">
                             Log Your Exercise
                           </Text>
@@ -962,7 +976,7 @@ export default function HomeScreen() {
                             color={dark ? "white" : "gray"}
                           ></Gauge>
                         </View>
-                        <View className="bg-blue-600 rounded-lg flex-col">
+                        <View className="bg-green-700 rounded-lg flex-col">
                           <View className="w-full items-end p-2">
                             <BadgeInfo size={30} color={"white"} />
                           </View>
@@ -1051,12 +1065,11 @@ export default function HomeScreen() {
           {logged.calories ? (
             <View>
               {meals.map((meal, i) => (
-                <MealSectionCard key={meal.mealType} meal={meal} index={i} />
-                <MealSection
+                <MealSectionCard
                   key={meal.mealType}
                   meal={meal}
                   index={i}
-                  onRefresh={fetchTodaysMeals}
+                  onRefresh={() => fetchMealsForDate(selectedDate)}
                 />
               ))}
             </View>
@@ -1174,16 +1187,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  calCircleSelected: {
-    borderWidth: 2.5,
-    borderColor: C.primary,
-  },
   calDayNum: {
     fontSize: 13,
     fontWeight: "700",
     color: "#fff",
   },
-  calDayNumSelected: { color: C.primary },
   calDayNumEmpty: { color: C.textMid },
   calDayNumEmptyDark: { color: "#5a8f74" },
   calDot: {
