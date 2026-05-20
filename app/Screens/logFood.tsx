@@ -1005,7 +1005,7 @@ export default function LogFoodScreen() {
           </View>
         }
         renderItem={({ item }) => (
-          <View style={{ paddingHorizontal: 20 }}>
+          <View style={{ paddingHorizontal: 20, marginTop: 5 }}>
             <FoodRow
               item={item}
               onPress={() => {

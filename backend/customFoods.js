@@ -9,7 +9,8 @@ const customFoods = [
     fat: 5,
     source: "custom",
     per: "1 serving",
-    imageUri: null,
+    imageUri:
+      "https://tysuyhaqmgldtusocftj.supabase.co/storage/v1/object/public/meal-images/custom_foods/dal_bhat.jpg",
   },
   {
     id: "custom_dhido",
@@ -20,7 +21,8 @@ const customFoods = [
     fat: 3,
     source: "custom",
     per: "1 serving",
-    imageUri: null,
+    imageUri:
+      "https://tysuyhaqmgldtusocftj.supabase.co/storage/v1/object/public/meal-images/custom_foods/dhiido.jpeg",
   },
   {
     id: "custom_roti",
@@ -31,7 +33,8 @@ const customFoods = [
     fat: 2,
     source: "custom",
     per: "1 piece",
-    imageUri: null,
+    imageUri:
+      "https://tysuyhaqmgldtusocftj.supabase.co/storage/v1/object/public/meal-images/custom_foods/roti.webp",
   },
   {
     id: "custom_sel_roti",
@@ -42,7 +45,8 @@ const customFoods = [
     fat: 6,
     source: "custom",
     per: "1 piece",
-    imageUri: null,
+    imageUri:
+      "https://tysuyhaqmgldtusocftj.supabase.co/storage/v1/object/public/meal-images/custom_foods/sel_roti.webp",
   },
   {
     id: "custom_chiura",
@@ -53,7 +57,8 @@ const customFoods = [
     fat: 1,
     source: "custom",
     per: "100g",
-    imageUri: null,
+    imageUri:
+      "https://tysuyhaqmgldtusocftj.supabase.co/storage/v1/object/public/meal-images/custom_foods/chuira.webp",
   },
 
   // ── Momo ─────────────────────────────────────────────────────────────────────
@@ -66,7 +71,8 @@ const customFoods = [
     fat: 8,
     source: "custom",
     per: "6 pieces",
-    imageUri: null,
+    imageUri:
+      "https://tysuyhaqmgldtusocftj.supabase.co/storage/v1/object/public/meal-images/custom_foods/momo.jpg",
   },
   {
     id: "custom_buff_momo",
@@ -77,7 +83,8 @@ const customFoods = [
     fat: 7,
     source: "custom",
     per: "6 pieces",
-    imageUri: null,
+    imageUri:
+      "https://tysuyhaqmgldtusocftj.supabase.co/storage/v1/object/public/meal-images/custom_foods/buff_momo.jpg",
   },
   {
     id: "custom_veg_momo",
@@ -88,7 +95,8 @@ const customFoods = [
     fat: 6,
     source: "custom",
     per: "6 pieces",
-    imageUri: null,
+    imageUri:
+      "https://tysuyhaqmgldtusocftj.supabase.co/storage/v1/object/public/meal-images/custom_foods/veg_momo.webp",
   },
   {
     id: "custom_fried_momo",
@@ -99,7 +107,8 @@ const customFoods = [
     fat: 16,
     source: "custom",
     per: "6 pieces",
-    imageUri: null,
+    imageUri:
+      "https://tysuyhaqmgldtusocftj.supabase.co/storage/v1/object/public/meal-images/custom_foods/fried.avif",
   },
   {
     id: "custom_jhol_momo",
@@ -110,7 +119,8 @@ const customFoods = [
     fat: 10,
     source: "custom",
     per: "1 bowl",
-    imageUri: null,
+    imageUri:
+      "https://tysuyhaqmgldtusocftj.supabase.co/storage/v1/object/public/meal-images/custom_foods/jhol_momo.jpg",
   },
 
   // ── Curries & Sides ──────────────────────────────────────────────────────────
@@ -224,7 +234,8 @@ const customFoods = [
     fat: 3,
     source: "custom",
     per: "1 piece",
-    imageUri: null,
+    imageUri:
+      "https://tysuyhaqmgldtusocftj.supabase.co/storage/v1/object/public/meal-images/custom_foods/yomari.jpg",
   },
   {
     id: "custom_samay_baji",
@@ -259,7 +270,8 @@ const customFoods = [
     fat: 8,
     source: "custom",
     per: "1 bowl",
-    imageUri: null,
+    imageUri:
+      "https://tysuyhaqmgldtusocftj.supabase.co/storage/v1/object/public/meal-images/custom_foods/thukpa.jpg",
   },
   {
     id: "custom_wai_wai",
@@ -270,7 +282,8 @@ const customFoods = [
     fat: 16,
     source: "custom",
     per: "1 packet",
-    imageUri: null,
+    imageUri:
+      "https://tysuyhaqmgldtusocftj.supabase.co/storage/v1/object/public/meal-images/custom_foods/wai_wai.jpg",
   },
 
   // ── Desserts & Drinks ─────────────────────────────────────────────────────────
@@ -283,7 +296,8 @@ const customFoods = [
     fat: 9,
     source: "custom",
     per: "1 bowl",
-    imageUri: null,
+    imageUri:
+      "https://tysuyhaqmgldtusocftj.supabase.co/storage/v1/object/public/meal-images/custom_foods/kheer.jpg",
   },
   {
     id: "custom_juju_dhau",
