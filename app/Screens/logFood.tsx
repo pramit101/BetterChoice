@@ -73,8 +73,8 @@ type FoodItem = {
   protein: number;
   carbs: number;
   fat: number;
-  per: string; // "100g" | "serving"
-  source: "usda" | "off" | "ai";
+  per: string; // "100g" | "1 serving" | etc.
+  source: "usda" | "off" | "ai" | "custom";
   barcode?: string;
   imageUri?: string | null;
 };
@@ -171,19 +171,31 @@ function FoodDetailSheet({
     mealType: string,
   ) => void;
 }) {
-  const [grams, setGrams] = useState("100");
+  const [amount, setAmount] = useState("100");
   const [mealType, setMealType] = useState<MealType>("Lunch");
   const { dark } = useTheme();
+
+  const isServingBased = !!item && item.per !== "100g";
+
+  useEffect(() => {
+    setAmount(isServingBased ? "1" : "100");
+  }, [item?.id]);
+
   if (!item) return null;
 
   const hasImage = !!item.imageUri;
-  const scale = Number(grams) / 100;
+  const scale = isServingBased ? Number(amount) : Number(amount) / 100;
   const scaled = {
     calories: Math.round(item.calories * scale),
     protein: Math.round(item.protein * scale * 10) / 10,
     carbs: Math.round(item.carbs * scale * 10) / 10,
     fat: Math.round(item.fat * scale * 10) / 10,
   };
+
+  const servingPills = isServingBased
+    ? ["0.5", "1", "1.5", "2"]
+    : ["50", "100", "150", "200"];
+  const unitLabel = isServingBased ? "serving" : "g";
 
   return (
     <Modal
@@ -214,9 +226,11 @@ function FoodDetailSheet({
             >
               {item.source === "ai"
                 ? "AI Estimate"
-                : item.source === "off"
-                  ? "Open Food Facts"
-                  : "USDA"}
+                : item.source === "custom"
+                  ? "Custom Food"
+                  : item.source === "off"
+                    ? "Open Food Facts"
+                    : "USDA"}
             </Text>
           </View>
 
@@ -244,42 +258,42 @@ function FoodDetailSheet({
             >
               <TextInput
                 style={[styles.servingInput, dark && styles.servingInputDark]}
-                value={grams}
-                onChangeText={setGrams}
+                value={amount}
+                onChangeText={setAmount}
                 keyboardType="numeric"
                 selectTextOnFocus
               />
               <Text
                 style={[styles.servingUnit, dark && styles.servingUnitDark]}
               >
-                g
+                {unitLabel}
               </Text>
             </View>
           </View>
 
           {/* Quick serving buttons */}
           <View style={styles.quickServing}>
-            {["50", "100", "150", "200"].map((g) => (
+            {servingPills.map((v) => (
               <TouchableOpacity
-                key={g}
-                onPress={() => setGrams(g)}
+                key={v}
+                onPress={() => setAmount(v)}
                 style={[
                   styles.servingPill,
-                  grams === g && styles.servingPillActive,
+                  amount === v && styles.servingPillActive,
                   dark && styles.servingPillDark,
-                  grams === g && dark && styles.servingPillActiveDark,
+                  amount === v && dark && styles.servingPillActiveDark,
                 ]}
                 activeOpacity={0.7}
               >
                 <Text
                   style={[
                     styles.servingPillText,
-                    grams === g && styles.servingPillTextActive,
+                    amount === v && styles.servingPillTextActive,
                     dark && styles.servingPillTextDark,
                     dark && styles.servingPillTextActiveDark,
                   ]}
                 >
-                  {g}g
+                  {isServingBased ? `${v}×` : `${v}g`}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -411,7 +425,7 @@ function FoodDetailSheet({
           </View>
           {/* Add button */}
           <TouchableOpacity
-            onPress={() => onAdd(item, Number(grams), isRecent, mealType)}
+            onPress={() => onAdd(item, Number(amount), isRecent, mealType)}
             activeOpacity={0.85}
             style={styles.addBtnWrap}
           >
@@ -833,6 +847,8 @@ export default function LogFoodScreen() {
     isRecent: boolean,
     mealType: string,
   ) => {
+    const isServingBased = item.per !== "100g";
+
     if (isRecent) {
       await fetch(`http://${IP}:3000/api/meals/recent/log`, {
         method: "POST",
@@ -842,28 +858,47 @@ export default function LogFoodScreen() {
           FoodId: item.id,
           mealType,
           quantity: grams,
-          unit: "g",
-          imageUrl: item.imageUri,
+          unit: isServingBased ? "serving" : "g",
+          imageUrl: item.imageUri ?? null,
         }),
       });
     } else {
       await fetch(`http://${IP}:3000/api/meals/log`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          firebaseUid: user?.uid,
-          mealType,
-          foodName: item.name,
-          quantity: grams,
-          unit: "g",
-          calories: Math.round((item.calories * grams) / 100),
-          protein: Math.round(((item.protein * grams) / 100) * 10) / 10,
-          carbs: Math.round(((item.carbs * grams) / 100) * 10) / 10,
-          fat: Math.round(((item.fat * grams) / 100) * 10) / 10,
-          imageUrl: item.source === "ai" ? aiImageUrl : null,
-        }),
+        body: JSON.stringify(
+          isServingBased
+            ? {
+                // Store base (per-serving) nutrition in FoodItem; quantity = number of servings
+                firebaseUid: user?.uid,
+                mealType,
+                foodName: item.name,
+                quantity: grams,
+                unit: "serving",
+                calories: item.calories,
+                protein: item.protein,
+                carbs: item.carbs ?? 0,
+                fat: item.fat ?? 0,
+                imageUrl:
+                  item.source === "ai"
+                    ? aiImageUrl
+                    : (item.imageUri ?? null),
+              }
+            : {
+                // Store scaled nutrition; quantity = grams
+                firebaseUid: user?.uid,
+                mealType,
+                foodName: item.name,
+                quantity: grams,
+                unit: "g",
+                calories: Math.round((item.calories * grams) / 100),
+                protein: Math.round(((item.protein * grams) / 100) * 10) / 10,
+                carbs: Math.round((((item.carbs ?? 0) * grams) / 100) * 10) / 10,
+                fat: Math.round((((item.fat ?? 0) * grams) / 100) * 10) / 10,
+                imageUrl: null,
+              },
+        ),
       });
-      console.log("Adding:", item.name, grams + "g", "to", mealType);
     }
     setAiImageUrl(null);
     setShowDetail(false);

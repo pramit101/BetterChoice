@@ -487,7 +487,8 @@ app.get("/api/meals/today/:firebaseUid", async (req, res) => {
 
   const mealsWithTotals = meals.map((meal) => {
     const items = meal.items.map((item) => {
-      const scale = item.quantity / 100;
+      const scale =
+        item.unit === "serving" ? item.quantity : item.quantity / 100;
       const cal = Math.round(item.foodItem.calories * scale);
       const pro = Math.round(item.foodItem.protein * scale * 10) / 10;
       const carb = Math.round((item.foodItem.carbs ?? 0) * scale * 10) / 10;
@@ -551,9 +552,9 @@ app.get("/api/meals/week-summary/:firebaseUid", async (req, res) => {
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
     if (!dailyCalories[key]) dailyCalories[key] = 0;
     meal.items.forEach((item) => {
-      dailyCalories[key] += Math.round(
-        item.foodItem.calories * (item.quantity / 100),
-      );
+      const scale =
+        item.unit === "serving" ? item.quantity : item.quantity / 100;
+      dailyCalories[key] += Math.round(item.foodItem.calories * scale);
     });
   });
 
@@ -591,7 +592,8 @@ app.get("/api/meals/date/:firebaseUid/:date", async (req, res) => {
 
   const mealsWithTotals = meals.map((meal) => {
     const items = meal.items.map((item) => {
-      const scale = item.quantity / 100;
+      const scale =
+        item.unit === "serving" ? item.quantity : item.quantity / 100;
       const cal = Math.round(item.foodItem.calories * scale);
       const pro = Math.round(item.foodItem.protein * scale * 10) / 10;
       const carb = Math.round((item.foodItem.carbs ?? 0) * scale * 10) / 10;

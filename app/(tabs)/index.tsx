@@ -356,8 +356,9 @@ function LoggedFoodRow({
           {item.name}
         </Text>
         <Text style={[styles.loggedRowMeta, dark && styles.loggedRowMetaDark]}>
-          {item.quantity}
-          {item.unit}
+          {item.unit === "serving"
+            ? `${item.quantity} serving${item.quantity !== 1 ? "s" : ""}`
+            : `${item.quantity}${item.unit}`}
         </Text>
       </View>
       <View style={styles.loggedRowRight}>
@@ -513,8 +514,9 @@ function MealSectionCard({
             <Text
               style={[styles.detailServing, dark && styles.detailServingDark]}
             >
-              {selectedItem.quantity}
-              {selectedItem.unit}
+              {selectedItem.unit === "serving"
+                ? `${selectedItem.quantity} serving${selectedItem.quantity !== 1 ? "s" : ""}`
+                : `${selectedItem.quantity}${selectedItem.unit}`}
             </Text>
             {!!selectedItem.imageUri && (
               <Image
