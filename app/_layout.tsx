@@ -1,9 +1,10 @@
 import { AuthProvider, useAuth } from "@/services/AuthContext";
+import { setupNotifications } from "@/services/notifications";
 import { ThemeProvider, useTheme } from "@/services/ThemeContext";
 import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import "react-native-reanimated";
 import "../global.css";
@@ -25,6 +26,7 @@ function RootLayoutNav() {
   const { dark } = useTheme();
   const router = useRouter();
   const [retrying, setRetrying] = useState(false);
+  const notificationsSetup = useRef(false);
   const handleRetry = async () => {
     setRetrying(true);
     try {
@@ -42,6 +44,13 @@ function RootLayoutNav() {
       SplashScreen.hideAsync();
     }
   }, [isLoading]);
+
+  useEffect(() => {
+    if (user && profile?.isOnboarded && !notificationsSetup.current) {
+      notificationsSetup.current = true;
+      setupNotifications(user.uid);
+    }
+  }, [user, profile?.isOnboarded]);
 
   useEffect(() => {
     if (isLoading) return;

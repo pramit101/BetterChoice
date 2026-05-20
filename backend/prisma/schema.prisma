@@ -13,10 +13,11 @@ model User {
   name        String?
   onboarded   Boolean     @default(false)
   createdAt   DateTime    @default(now())
+  pushToken   String?
   healthPlan  HealthPlan?
   meals       Meal[]
   profile     Profile?
-  exercises    Exercise[] 
+  exercises    Exercise[]
 }
 
 model Profile {

@@ -772,6 +772,78 @@ app.get("/exercise/:firebaseUid", async (req, res) => {
   }
 });
 
+// ── Notification token registration ──────────────────────────────────────────
+app.post("/api/notifications/token", async (req, res) => {
+  const { firebaseUid, pushToken } = req.body;
+  if (!firebaseUid || !pushToken) {
+    return res.status(400).json({ error: "firebaseUid and pushToken required" });
+  }
+  try {
+    await prisma.user.update({
+      where: { firebaseUid },
+      data: { pushToken },
+    });
+    res.json({ ok: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to save push token" });
+  }
+});
+
+// ── Notification status (streak + today's calories) ───────────────────────────
+app.get("/api/notifications/status/:uid", async (req, res) => {
+  const { uid } = req.params;
+  try {
+    const user = await prisma.user.findUnique({
+      where: { firebaseUid: uid },
+      include: { healthPlan: true },
+    });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    // Calories logged today
+    const today = startOfLocalDay();
+    const tomorrow = endOfLocalDay(today);
+    const mealsToday = await prisma.meal.findMany({
+      where: { userId: user.id, date: { gte: today, lt: tomorrow } },
+      include: {
+        items: {
+          include: { foodItem: true },
+        },
+      },
+    });
+    let calorieToday = 0;
+    for (const meal of mealsToday) {
+      for (const item of meal.items) {
+        const scale = item.unit === "serving" ? item.quantity : item.quantity / 100;
+        calorieToday += (item.foodItem.calories ?? 0) * scale;
+      }
+    }
+
+    // Streak: count consecutive days (ending yesterday) that had any logged meal
+    let streak = 0;
+    let checkDay = startOfLocalDay(new Date(today.getTime() - 86400000)); // yesterday
+    for (let i = 0; i < 30; i++) {
+      const nextDay = endOfLocalDay(checkDay);
+      const count = await prisma.meal.count({
+        where: { userId: user.id, date: { gte: checkDay, lt: nextDay } },
+      });
+      if (count === 0) break;
+      streak++;
+      checkDay = new Date(checkDay.getTime() - 86400000);
+    }
+
+    res.json({
+      streak,
+      calorieToday: Math.round(calorieToday),
+      targetCalories: user.healthPlan?.targetCalories ?? 2000,
+      hasLoggedToday: mealsToday.length > 0,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to fetch notification status" });
+  }
+});
+
 const PORT = 3000;
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
