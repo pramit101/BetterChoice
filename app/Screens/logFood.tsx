@@ -1,5 +1,6 @@
 import { IP } from "@/constants/IP";
 import { useAuth } from "@/services/AuthContext";
+import { checkAndNotifyGoalStatus } from "@/services/notifications";
 import { useTheme } from "@/services/ThemeContext";
 import { uploadMealImage } from "@/services/storage";
 import { CameraView, useCameraPermissions } from "expo-camera";
@@ -936,6 +937,11 @@ export default function LogFoodScreen() {
     setAiImageUrl(null);
     setShowDetail(false);
     setSelectedItem(null);
+
+    // Fire data-driven notifications (goal reached, close to goal, streak, etc.)
+    if (user?.uid) {
+      checkAndNotifyGoalStatus(user.uid);
+    }
   };
 
   const openDetail = (item: FoodItem) => {
