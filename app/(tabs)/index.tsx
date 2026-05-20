@@ -335,7 +335,7 @@ function LoggedFoodRow({
       activeOpacity={0.7}
       style={[styles.loggedRow, dark && styles.loggedRowDark]}
     >
-      {item.source === "ai" && item.imageUri && (
+      {!!item.imageUri && (
         <Image source={{ uri: item.imageUri }} style={styles.foodRowImage} />
       )}
       <View style={styles.loggedRowLeft}>
@@ -498,7 +498,7 @@ function MealSectionCard({ meal, index }: { meal: MealSection; index: number }) 
               {selectedItem.quantity}
               {selectedItem.unit}
             </Text>
-            {selectedItem.source === "ai" && selectedItem.imageUri && (
+            {!!selectedItem.imageUri && (
               <Image
                 source={{ uri: selectedItem.imageUri }}
                 style={styles.detailImage}

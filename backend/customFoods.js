@@ -9,6 +9,7 @@ const customFoods = [
     fat: 5,
     source: "custom",
     per: "1 serving",
+    imageUri: null,
   },
   {
     id: "custom_dhido",
@@ -19,6 +20,7 @@ const customFoods = [
     fat: 3,
     source: "custom",
     per: "1 serving",
+    imageUri: null,
   },
   {
     id: "custom_roti",
@@ -29,6 +31,7 @@ const customFoods = [
     fat: 2,
     source: "custom",
     per: "1 piece",
+    imageUri: null,
   },
   {
     id: "custom_sel_roti",
@@ -39,6 +42,7 @@ const customFoods = [
     fat: 6,
     source: "custom",
     per: "1 piece",
+    imageUri: null,
   },
   {
     id: "custom_chiura",
@@ -49,6 +53,7 @@ const customFoods = [
     fat: 1,
     source: "custom",
     per: "100g",
+    imageUri: null,
   },
 
   // ── Momo ─────────────────────────────────────────────────────────────────────
@@ -61,6 +66,7 @@ const customFoods = [
     fat: 8,
     source: "custom",
     per: "6 pieces",
+    imageUri: null,
   },
   {
     id: "custom_buff_momo",
@@ -71,6 +77,7 @@ const customFoods = [
     fat: 7,
     source: "custom",
     per: "6 pieces",
+    imageUri: null,
   },
   {
     id: "custom_veg_momo",
@@ -81,6 +88,7 @@ const customFoods = [
     fat: 6,
     source: "custom",
     per: "6 pieces",
+    imageUri: null,
   },
   {
     id: "custom_fried_momo",
@@ -91,6 +99,7 @@ const customFoods = [
     fat: 16,
     source: "custom",
     per: "6 pieces",
+    imageUri: null,
   },
   {
     id: "custom_jhol_momo",
@@ -101,6 +110,7 @@ const customFoods = [
     fat: 10,
     source: "custom",
     per: "1 bowl",
+    imageUri: null,
   },
 
   // ── Curries & Sides ──────────────────────────────────────────────────────────
@@ -113,6 +123,7 @@ const customFoods = [
     fat: 18,
     source: "custom",
     per: "1 serving",
+    imageUri: null,
   },
   {
     id: "custom_mutton_curry",
@@ -123,6 +134,7 @@ const customFoods = [
     fat: 24,
     source: "custom",
     per: "1 serving",
+    imageUri: null,
   },
   {
     id: "custom_aloo_tama",
@@ -133,6 +145,7 @@ const customFoods = [
     fat: 5,
     source: "custom",
     per: "1 serving",
+    imageUri: null,
   },
   {
     id: "custom_gundruk_jhol",
@@ -143,6 +156,7 @@ const customFoods = [
     fat: 2,
     source: "custom",
     per: "1 bowl",
+    imageUri: null,
   },
   {
     id: "custom_saag",
@@ -153,6 +167,7 @@ const customFoods = [
     fat: 4,
     source: "custom",
     per: "1 serving",
+    imageUri: null,
   },
   {
     id: "custom_kwati",
@@ -163,6 +178,7 @@ const customFoods = [
     fat: 4,
     source: "custom",
     per: "1 bowl",
+    imageUri: null,
   },
   {
     id: "custom_tomato_achar",
@@ -173,6 +189,7 @@ const customFoods = [
     fat: 1,
     source: "custom",
     per: "2 tbsp",
+    imageUri: null,
   },
 
   // ── Snacks & Street Food ─────────────────────────────────────────────────────
@@ -185,6 +202,7 @@ const customFoods = [
     fat: 3,
     source: "custom",
     per: "1 piece",
+    imageUri: null,
   },
   {
     id: "custom_bara",
@@ -195,6 +213,7 @@ const customFoods = [
     fat: 4,
     source: "custom",
     per: "1 piece",
+    imageUri: null,
   },
   {
     id: "custom_yomari",
@@ -205,6 +224,7 @@ const customFoods = [
     fat: 3,
     source: "custom",
     per: "1 piece",
+    imageUri: null,
   },
   {
     id: "custom_samay_baji",
@@ -215,6 +235,7 @@ const customFoods = [
     fat: 14,
     source: "custom",
     per: "1 plate",
+    imageUri: null,
   },
   {
     id: "custom_sukuti",
@@ -225,6 +246,7 @@ const customFoods = [
     fat: 12,
     source: "custom",
     per: "100g",
+    imageUri: null,
   },
 
   // ── Noodles & Soup ────────────────────────────────────────────────────────────
@@ -237,6 +259,7 @@ const customFoods = [
     fat: 8,
     source: "custom",
     per: "1 bowl",
+    imageUri: null,
   },
   {
     id: "custom_wai_wai",
@@ -247,6 +270,7 @@ const customFoods = [
     fat: 16,
     source: "custom",
     per: "1 packet",
+    imageUri: null,
   },
 
   // ── Desserts & Drinks ─────────────────────────────────────────────────────────
@@ -259,6 +283,7 @@ const customFoods = [
     fat: 9,
     source: "custom",
     per: "1 bowl",
+    imageUri: null,
   },
   {
     id: "custom_juju_dhau",
@@ -269,6 +294,7 @@ const customFoods = [
     fat: 4,
     source: "custom",
     per: "100g",
+    imageUri: null,
   },
   {
     id: "custom_chiya",
@@ -279,6 +305,7 @@ const customFoods = [
     fat: 2,
     source: "custom",
     per: "1 cup",
+    imageUri: null,
   },
   {
     id: "custom_lassi",
@@ -289,6 +316,7 @@ const customFoods = [
     fat: 5,
     source: "custom",
     per: "1 glass",
+    imageUri: null,
   },
 ];
 

@@ -112,7 +112,7 @@ function FoodRow({ item, onPress }: { item: FoodItem; onPress: () => void }) {
       activeOpacity={0.7}
       style={[styles.foodRow, dark && styles.foodRowDark]}
     >
-      {item.source === "ai" && item.imageUri && (
+      {!!item.imageUri && (
         <Image source={{ uri: item.imageUri }} style={styles.foodRowImage} />
       )}
       <View style={styles.foodRowLeft}>
@@ -176,7 +176,7 @@ function FoodDetailSheet({
   const { dark } = useTheme();
   if (!item) return null;
 
-  const hasImage = item.source === "ai" && !!item.imageUri;
+  const hasImage = !!item.imageUri;
   const scale = Number(grams) / 100;
   const scaled = {
     calories: Math.round(item.calories * scale),
@@ -284,7 +284,7 @@ function FoodDetailSheet({
               </TouchableOpacity>
             ))}
           </View>
-          {item.source === "ai" && item.imageUri && (
+          {!!item.imageUri && (
             <Image
               source={{ uri: item.imageUri }}
               style={styles.detailImage}
