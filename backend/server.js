@@ -3,6 +3,7 @@ import cors from "cors";
 import * as dotenv from "dotenv";
 import express from "express";
 import { generateMealPlanPrompt, imagePrompt } from "./ai.ts";
+import customFoods from "./customFoods.js";
 import prisma from "./services/db.js"; // Your Prisma client file
 
 dotenv.config();
@@ -279,6 +280,13 @@ app.get("/api/food/search", async (req, res) => {
       }))
       .filter((p) => p.name),
   ];
+
+  if (results.length === 0) {
+    const q_lower = q.toLowerCase();
+    return res.json(
+      customFoods.filter((f) => f.name.toLowerCase().includes(q_lower)),
+    );
+  }
 
   res.json(results);
 });
