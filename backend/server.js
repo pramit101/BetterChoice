@@ -281,14 +281,12 @@ app.get("/api/food/search", async (req, res) => {
       .filter((p) => p.name),
   ];
 
-  if (results.length === 0) {
-    const q_lower = q.toLowerCase();
-    return res.json(
-      customFoods.filter((f) => f.name.toLowerCase().includes(q_lower)),
-    );
-  }
+  const q_lower = q.toLowerCase();
+  const customMatches = customFoods.filter((f) =>
+    f.name.toLowerCase().includes(q_lower),
+  );
 
-  res.json(results);
+  res.json([...customMatches, ...results]);
 });
 
 app.post("/api/food/analyse-photo", async (req, res) => {
